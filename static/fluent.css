@@ -1,0 +1,157 @@
+/* Fluent UI - Microsoft Style Design System */
+
+:root {
+    --ms-blue: #0067b8;
+    --ms-blue-hover: #005da6;
+    --ms-white: #ffffff;
+    --ms-off-white: #f3f2f1;
+    --ms-grey-light: #faf9f8;
+    --ms-grey-border: #edebe9;
+    --ms-grey-text: #323130;
+    --ms-grey-secondary: #605e5c;
+    --ms-danger: #a4262c;
+    --ms-success: #107c10;
+    --ms-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+    --ms-shadow-hover: 0 8px 16px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.06);
+    --ms-font: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    --ms-radius: 4px; /* Microsoft uses sharp but slightly rounded corners */
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--ms-font);
+    background-color: var(--ms-off-white);
+    color: var(--ms-grey-text);
+    line-height: 1.5;
+}
+
+/* Layout Utilities */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+.ms-card {
+    background: var(--ms-white);
+    border: 1px solid var(--ms-grey-border);
+    border-radius: var(--ms-radius);
+    padding: 2rem;
+    box-shadow: var(--ms-shadow);
+    transition: box-shadow 0.2s ease-in-out;
+}
+
+.ms-card:hover {
+    box-shadow: var(--ms-shadow-hover);
+}
+
+/* Typography */
+h1, h2, h3, h4 {
+    font-weight: 600;
+    color: #1b1b1b;
+}
+
+h1 { font-size: 2.25rem; margin-bottom: 1.5rem; }
+h2 { font-size: 1.75rem; margin-bottom: 1rem; }
+p { margin-bottom: 1rem; color: var(--ms-grey-secondary); }
+
+/* Buttons */
+.ms-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.6rem 2rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border-radius: 2px; /* Microsoft often uses very small radius for buttons */
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    text-decoration: none;
+}
+
+.ms-btn-primary {
+    background-color: var(--ms-blue);
+    color: var(--ms-white);
+}
+
+.ms-btn-primary:hover {
+    background-color: var(--ms-blue-hover);
+}
+
+.ms-btn-secondary {
+    background-color: var(--ms-white);
+    color: var(--ms-blue);
+    border: 1px solid var(--ms-blue);
+}
+
+.ms-btn-secondary:hover {
+    background-color: var(--ms-off-white);
+}
+
+/* Inputs */
+.ms-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--ms-grey-secondary);
+    border-radius: 2px;
+    font-size: 1rem;
+    outline: none;
+    margin-bottom: 1.5rem;
+}
+
+.ms-input:focus {
+    border-color: var(--ms-blue);
+    border-width: 2px;
+    padding: 0.7rem; /* adjust for border width */
+}
+
+/* Header/Navbar */
+.ms-header {
+    background: var(--ms-white);
+    border-bottom: 1px solid var(--ms-grey-border);
+    padding: 1rem 0;
+    margin-bottom: 2rem;
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ms-logo {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #000;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.ms-logo img { width: 100px; } /* for actual logo */
+
+/* Badges */
+.ms-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.ms-badge-info { background: #cfe4fa; color: #005a9e; }
+.ms-badge-success { background: #dff6dd; color: #107c10; }
+.ms-badge-danger { background: #fde7e9; color: #a4262c; }
+
+/* Grid */
+.ms-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+}

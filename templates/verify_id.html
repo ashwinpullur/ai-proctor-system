@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Identity Verification</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='fluent.css') }}">
+    <style>
+        body { background-color: var(--ms-off-white); display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .verify-card { width: 100%; max-width: 600px; padding: 3rem; background: var(--ms-white); border: 1px solid var(--ms-grey-border); box-shadow: var(--ms-shadow); }
+        .cam-preview { width: 100%; background: #000; border-radius: 4px; aspect-ratio: 4/3; margin-bottom: 2rem; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+        .id-overlay { position: absolute; width: 70%; height: 60%; border: 2px dashed rgba(255,255,255,0.5); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); font-size: 0.9rem; }
+        video { width: 100%; height: 100%; object-fit: cover; }
+    </style>
+</head>
+<body>
+    <div class="verify-card">
+        <ms-badge class="ms-badge ms-badge-info" style="margin-bottom: 1rem;">Verification Step 1 of 2</ms-badge>
+        <h1>Verify your Identity</h1>
+        <p>Please hold your government-issued ID card within the frame below. Ensure the text is clear and readable.</p>
+        
+        <div class="cam-preview">
+            <div class="id-overlay">Align ID Card Here</div>
+            <video id="video" autoplay muted></video>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <p style="font-size: 0.85rem; margin-bottom: 0;">Identity data is handled securely and deleted after verification.</p>
+            <button class="ms-btn ms-btn-primary" onclick="verifyID()">Capture ID</button>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => video.srcObject = stream)
+            .catch(err => console.error("Error accessing camera:", err));
+
+        function verifyID() {
+            // Mocking verification for now
+            const btn = document.querySelector('.ms-btn-primary');
+            btn.innerText = "Verifying...";
+            btn.disabled = true;
+            setTimeout(() => {
+                window.location.href = "/student/verify_face";
+            }, 1500);
+        }
+    </script>
+</body>
+</html>

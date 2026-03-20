@@ -166,6 +166,16 @@ def exam():
 def results():
     return render_template('results.html')
 
+@app.route('/student/verify_id')
+@student_required
+def verify_id():
+    return render_template('verify_id.html')
+
+@app.route('/student/verify_face')
+@student_required
+def verify_face():
+    return render_template('verify_face.html')
+
 @app.route('/student')
 @student_required
 def student():
@@ -200,7 +210,7 @@ def student_login():
             session['logged_in'] = True
             session['username'] = username
             session['role'] = 'student'
-            return redirect(url_for('student'))
+            return redirect(url_for('verify_id'))
         return render_template('student_login.html', error="Invalid student credentials")
     return render_template('student_login.html')
 

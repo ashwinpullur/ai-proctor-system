@@ -4,220 +4,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Proctor – Exam Portal</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Microsoft | AI Proctoring Portal</title>
+    <!-- Segoe UI is usually pre-installed on Windows, but let's add Inter as a high-quality fallback -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='fluent.css') }}">
     <style>
-        .landing-hero {
-            min-height: 100vh;
+        .hero {
+            padding: 5rem 0;
+            background: var(--ms-white);
+            border-bottom: 1px solid var(--ms-grey-border);
+        }
+
+        .hero-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .hero-text h1 {
+            font-size: 3.5rem;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            color: #000;
+        }
+
+        .hero-text p {
+            font-size: 1.25rem;
+            color: var(--ms-grey-secondary);
+            margin-bottom: 2rem;
+            max-width: 500px;
+        }
+
+        .hero-image {
+            background-color: var(--ms-off-white);
+            border-radius: 8px;
+            aspect-ratio: 16/9;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2rem;
+            font-size: 3rem;
+            color: #ccc;
+            border: 1px dashed #bbb;
         }
 
-        .landing-card {
-            max-width: 760px;
-            width: 100%;
-            background: rgba(17, 24, 39, 0.7);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 32px;
-            padding: 3.5rem;
-            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
-            animation: fadeUp 0.6s ease;
+        .feature-section {
+            padding: 4rem 0;
         }
 
-        .exam-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: rgba(99, 102, 241, 0.12);
-            color: #a5b4fc;
-            border: 1px solid rgba(99, 102, 241, 0.25);
-            padding: 0.4rem 1rem;
-            border-radius: 40px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            margin-bottom: 1.5rem;
-        }
-
-        .landing-card h1 {
-            font-size: 2.75rem;
-            font-weight: 800;
-            letter-spacing: -0.04em;
-            background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 1rem;
-            line-height: 1.15;
-        }
-
-        .landing-card p {
-            color: #94a3b8;
-            font-size: 1.05rem;
-            line-height: 1.7;
-            margin-bottom: 2rem;
-        }
-
-        .exam-meta {
+        .feature-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
-            margin-bottom: 2.5rem;
+            gap: 2rem;
         }
 
-        .meta-item {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.07);
-            border-radius: 16px;
-            padding: 1.25rem;
-            text-align: center;
+        .feature-card {
+            padding: 2rem;
+            border: 1px solid var(--ms-grey-border);
+            border-radius: 4px;
+            background: var(--ms-white);
         }
 
-        .meta-item .meta-val {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #f8fafc;
-            margin-bottom: 0.3rem;
+        .feature-card h3 {
+            margin-bottom: 1rem;
+            color: var(--ms-blue);
         }
 
-        .meta-item .meta-label {
-            font-size: 0.75rem;
-            color: #64748b;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
+        .footer {
+            padding: 3rem 0;
+            background: var(--ms-off-white);
+            border-top: 1px solid var(--ms-grey-border);
+            color: var(--ms-grey-secondary);
+            font-size: 0.9rem;
         }
 
-        .name-row {
+        /* Microsoft-specific logo styling */
+        .ms-logo-box {
             display: flex;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
+            align-items: center;
+            gap: 10px;
+            font-family: var(--ms-font);
+            font-weight: 600;
+            font-size: 1.2rem;
         }
 
-        .name-input {
-            flex: 1;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 14px;
-            padding: 0.9rem 1.25rem;
-            font-size: 0.95rem;
-            color: #f8fafc;
-            font-family: 'Inter', sans-serif;
-            outline: none;
-            transition: border-color 0.2s;
+        .ms-symbol {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2px;
+            width: 20px;
+            height: 20px;
         }
 
-        .name-input:focus {
-            border-color: rgba(99, 102, 241, 0.5);
-        }
-
-        .name-input::placeholder {
-            color: #475569;
-        }
-
-        .take-btn {
-            width: 100%;
-            background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
-            color: #fff;
-            border: none;
-            padding: 1.1rem;
-            border-radius: 16px;
-            font-size: 1.05rem;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 8px 28px rgba(99, 102, 241, 0.35);
-            transition: all 0.25s ease;
-            font-family: 'Inter', sans-serif;
-            letter-spacing: -0.01em;
-        }
-
-        .take-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 36px rgba(99, 102, 241, 0.45);
-        }
-
-        .take-btn:disabled {
-            opacity: 0.45;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .admin-link {
-            display: block;
-            text-align: center;
-            margin-top: 1.5rem;
-            color: #475569;
-            font-size: 0.85rem;
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-
-        .admin-link:hover {
-            color: #94a3b8;
-        }
+        .ms-symbol div { width: 9px; height: 9px; }
+        .ms-red { background: #f25022; }
+        .ms-green { background: #7fbb00; }
+        .ms-blue-box { background: #00a1f1; }
+        .ms-yellow { background: #ffbb00; }
     </style>
 </head>
 
 <body>
-    <div class="landing-hero">
-        <div class="landing-card">
-            <div class="exam-badge">🎓 Online Exam Platform</div>
-            <h1>AI-Proctored<br>Examination</h1>
-            <p>This exam is monitored by an AI proctoring system that uses your camera, microphone, and activity
-                patterns to ensure academic integrity. Read all requirements carefully before proceeding.</p>
-
-            <div class="exam-meta">
-                <div class="meta-item">
-                    <div class="meta-val">60</div>
-                    <div class="meta-label">Minutes</div>
+    <header class="ms-header">
+        <div class="container navbar">
+            <a href="/" class="ms-logo-box">
+                <div class="ms-symbol">
+                    <div class="ms-red"></div>
+                    <div class="ms-green"></div>
+                    <div class="ms-blue-box"></div>
+                    <div class="ms-yellow"></div>
                 </div>
-                <div class="meta-item">
-                    <div class="meta-val">10</div>
-                    <div class="meta-label">Questions</div>
-                </div>
-                <div class="meta-item">
-                    <div class="meta-val">10</div>
-                    <div class="meta-label">Violation Limit</div>
-                </div>
+                <span>Microsoft</span>
+            </a>
+            <div class="nav-links">
+                {% if session.get('logged_in') %}
+                <span style="margin-right: 1.5rem;">Hello, <strong>{{ session.username }}</strong></span>
+                <a href="{{ url_for('logout') }}" class="ms-btn ms-btn-secondary" style="padding: 0.4rem 1rem;">Logout</a>
+                {% else %}
+                <a href="/admin/login" style="margin-right: 1.5rem; text-decoration: none; color: var(--ms-blue); font-weight: 600;">Admin Sign In</a>
+                <a href="/student/login" class="ms-btn ms-btn-primary">Sign in</a>
+                {% endif %}
             </div>
-
-            <div class="name-row">
-                <!-- Removed direct name input, using student login now -->
-            </div>
-
-            {% if session.get('logged_in') %}
-            <div style="text-align: center; color: #f8fafc; margin-bottom: 2rem;">
-                Logged in as <strong>{{ session.get('username') }}</strong> ({{ session.get('role') }})
-                <br><br>
-                <a href="{{ url_for('logout') }}" style="color: #6366f1; text-decoration: none;">Logout</a>
-            </div>
-            {% if session.get('role') == 'student' %}
-            <button class="take-btn" onclick="window.location.href='/student'">
-                Go to Exam Dashboard →
-            </button>
-            {% else %}
-            <button class="take-btn" onclick="window.location.href='/admin'">
-                Go to Admin Panel →
-            </button>
-            {% endif %}
-            {% else %}
-            <button class="take-btn" id="takeExamBtn" onclick="window.location.href='/student/login'">
-                Student Login →
-            </button>
-            <a href="/admin/login" class="admin-link">Admin Access →</a>
-            {% endif %}
         </div>
-    </div>
-    <script>
-        // Logic moved to login/exam pages
-    </script>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container hero-content">
+                <div class="hero-text">
+                    <h1>Secure Exam Assessments.</h1>
+                    <p>Powered by AI. Designed for integrity. Take your next assessment with the world's most advanced proctoring system.</p>
+                    
+                    {% if session.get('logged_in') %}
+                        {% if session.get('role') == 'student' %}
+                        <a href="/student" class="ms-btn ms-btn-primary" style="font-size: 1.1rem; padding: 0.8rem 2.5rem;">Launch Exam Portal</a>
+                        {% else %}
+                        <a href="/admin" class="ms-btn ms-btn-primary" style="font-size: 1.1rem; padding: 0.8rem 2.5rem;">Admin Dashboard</a>
+                        {% endif %}
+                    {% else %}
+                        <a href="/student/login" class="ms-btn ms-btn-primary" style="font-size: 1.1rem; padding: 0.8rem 2.5rem;">Get Started</a>
+                    {% endif %}
+                </div>
+                <div class="hero-image">
+                    <svg width="200" height="200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        <circle cx="12" cy="11" r="3"/>
+                        <path d="M7 16c1-1.5 2-2 5-2s4 .5 5 2"/>
+                    </svg>
+                </div>
+            </div>
+        </section>
+
+        <section class="feature-section container">
+            <h2 style="text-align: center; margin-bottom: 3rem;">How it works</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <ms-badge class="ms-badge ms-badge-info">Step 1</ms-badge>
+                    <h3 style="margin-top: 1rem;">ID Verification</h3>
+                    <p>Securely upload your government-issued ID. Our AI verifies your identity instantly to ensure the right person is taking the exam.</p>
+                </div>
+                <div class="feature-card">
+                    <ms-badge class="ms-badge ms-badge-info">Step 2</ms-badge>
+                    <h3 style="margin-top: 1rem;">Environment Scan</h3>
+                    <p>A 360-degree scan of your room and desk area ensures a fair testing environment free of unauthorized materials.</p>
+                </div>
+                <div class="feature-card">
+                    <ms-badge class="ms-badge ms-badge-info">Step 3</ms-badge>
+                    <h3 style="margin-top: 1rem;">Live Proctored Exam</h3>
+                    <p>Take your exam with confidence. Our AI monitors for suspicious behavior, allowing you to focus entirely on your performance.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>&copy; 2026 Microsoft. All rights reserved.</div>
+                <div style="display: flex; gap: 2rem;">
+                    <a href="#" style="text-decoration: none; color: inherit;">Privacy & Cookies</a>
+                    <a href="#" style="text-decoration: none; color: inherit;">Terms of Use</a>
+                    <a href="#" style="text-decoration: none; color: inherit;">Contact Us</a>
+                </div>
+            </div>
+        </div>
+    </footer>
 </body>
 
 </html>

@@ -3,133 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Proctor – Results</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Assessment Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='fluent.css') }}">
     <style>
-    .results-screen { min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding:3rem 2rem; }
-    .results-card {
-        max-width:720px; width:100%;
-        background:rgba(17,24,39,0.75); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
-        border:1px solid rgba(255,255,255,0.08); border-radius:28px; padding:3rem 2.5rem;
-        box-shadow:0 30px 80px rgba(0,0,0,0.55); animation:fadeUp .5s ease;
-    }
-    .result-badge { display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1.25rem; border-radius:40px; font-size:.85rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; margin-bottom:1.5rem; }
-    .result-badge.pass   { background:rgba(16,185,129,.12); color:#10b981; border:1px solid rgba(16,185,129,.25); }
-    .result-badge.fail   { background:rgba(244,63,94,.12);  color:#f43f5e; border:1px solid rgba(244,63,94,.25);  }
-    .result-badge.review { background:rgba(245,158,11,.12); color:#f59e0b; border:1px solid rgba(245,158,11,.25); }
-
-    .results-card h1 { font-size:1.8rem; font-weight:800; letter-spacing:-.04em; margin-bottom:.4rem; }
-    .results-card .sub { color:#64748b; font-size:.9rem; margin-bottom:2.5rem; }
-
-    .score-row { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:2.5rem; }
-    .score-box { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:16px; padding:1.4rem 1rem; text-align:center; }
-    .score-box .sv   { font-size:2.25rem; font-weight:800; letter-spacing:-.03em; margin-bottom:.3rem; }
-    .score-box .sl   { font-size:.72rem; color:#64748b; font-weight:600; text-transform:uppercase; letter-spacing:.07em; }
-
-    .evidence-preview { display:flex; gap:.75rem; flex-wrap:wrap; margin-bottom:2rem; }
-    .ev-thumb { width:100px; height:72px; object-fit:cover; border-radius:10px; border:1px solid rgba(255,255,255,0.08); cursor:pointer; transition:transform .2s; }
-    .ev-thumb:hover { transform:scale(1.05); }
-
-    .lms-box { background:rgba(99,102,241,.08); border:1px solid rgba(99,102,241,.2); border-radius:16px; padding:1.5rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:2rem; flex-wrap:wrap; }
-    .lms-label { font-size:.9rem; color:#a5b4fc; font-weight:600; }
-    .lms-sub   { font-size:.78rem; color:#64748b; margin-top:.25rem; }
-    .submit-lms-btn { background:#6366f1; color:#fff; border:none; padding:.85rem 1.75rem; border-radius:12px; font-size:.9rem; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; transition:all .2s; white-space:nowrap; }
-    .submit-lms-btn:hover { background:#4f46e5; transform:translateY(-1px); }
-    .submit-lms-btn:disabled { opacity:.4; cursor:not-allowed; transform:none; }
-
-    .back-btn { display:block; text-align:center; color:#64748b; font-size:.85rem; text-decoration:none; transition:color .2s; margin-top:.5rem; }
-    .back-btn:hover { color:#94a3b8; }
+        .results-container { max-width: 800px; margin: 4rem auto; }
+        .score-card { text-align: center; padding: 3rem; margin-bottom: 2rem; }
+        .kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 2rem; }
+        .kpi-item { background: var(--ms-off-white); padding: 1.5rem; border-radius: 4px; }
+        .kpi-label { font-size: 0.75rem; color: var(--ms-grey-secondary); font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem; }
+        .kpi-val { font-size: 1.5rem; font-weight: 700; }
+        
+        .evidence-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 1rem; margin-top: 1rem; }
+        .ev-thumb { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 4px; border: 1px solid var(--ms-grey-border); cursor: pointer; }
+        
+        .lms-submission { background: #f0f7ff; border: 1px solid #0067b8; padding: 2rem; margin-top: 3rem; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
-<div class="results-screen">
-    <div class="results-card">
-        <div id="result-badge" class="result-badge review">⏳ Loading results...</div>
-        <h1 id="result-title">Exam Results</h1>
-        <p class="sub" id="result-sub">Calculating your score...</p>
-
-        <div class="score-row">
-            <div class="score-box"><div class="sv text-success" id="res-score">—</div><div class="sl">Score</div></div>
-            <div class="score-box"><div class="sv danger-text"   id="res-warn">—</div><div class="sl">Warnings</div></div>
-            <div class="score-box"><div class="sv text-warning"  id="res-ev">—</div><div class="sl">Evidence</div></div>
-            <div class="score-box"><div class="sv text-secondary" id="res-verdict">—</div><div class="sl">Integrity</div></div>
+    <header class="ms-header">
+        <div class="container">
+            <a href="/" class="ms-logo-box">
+                <div class="ms-symbol">
+                    <div class="ms-red"></div>
+                    <div class="ms-green"></div>
+                    <div class="ms-blue-box"></div>
+                    <div class="ms-yellow"></div>
+                </div>
+                <span>Assessment Results</span>
+            </a>
         </div>
+    </header>
 
-        <!-- Evidence thumbnails -->
-        <h3 style="font-size:.875rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.75rem;">Evidence Captures</h3>
-        <div class="evidence-preview" id="ev-preview">
-            <span style="color:#475569;font-size:.85rem;">No evidence captured.</span>
-        </div>
-
-        <!-- LMS Submission -->
-        <div class="lms-box">
-            <div>
-                <div class="lms-label">📤 Submit to LMS / Admin</div>
-                <div class="lms-sub" id="lms-status">Ready to submit your exam report.</div>
+    <main class="container results-container">
+        <div class="ms-card score-card">
+            <ms-badge id="result-badge" class="ms-badge ms-badge-info" style="margin-bottom: 1.5rem;">Processing...</ms-badge>
+            <h1 id="result-title">Reviewing your performance</h1>
+            <p id="result-sub">Please wait while we compile your assessment data.</p>
+            
+            <div class="kpi-row">
+                <div class="kpi-item"><div class="kpi-label">Final Score</div><div class="kpi-val" id="res-score">—</div></div>
+                <div class="kpi-item"><div class="kpi-label">Integrity</div><div class="kpi-val" id="res-verdict">—</div></div>
+                <div class="kpi-item"><div class="kpi-label">Warnings</div><div class="kpi-val" id="res-warn">—</div></div>
             </div>
-            <button class="submit-lms-btn" id="lmsBtn" onclick="submitToLMS()">Submit Report</button>
         </div>
 
-        <a href="/" class="back-btn">← Back to Exam Portal</a>
-    </div>
-</div>
+        <div class="ms-card">
+            <h3>Monitoring Evidence</h3>
+            <p style="font-size: 0.9rem; color: var(--ms-grey-secondary);">Captured during your assessment for integrity verification.</p>
+            <div class="evidence-grid" id="ev-preview">
+                <p style="color: var(--ms-grey-secondary);">No evidence recorded.</p>
+            </div>
+        </div>
 
-<!-- Lightbox -->
-<div id="lightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:none;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;padding:2rem;" onclick="this.style.display='none'">
-    <img id="lb-img" src="" style="max-width:90vw;max-height:80vh;border-radius:12px;border:1px solid rgba(255,255,255,.1);">
-</div>
+        <div class="ms-card lms-submission">
+            <div>
+                <h3 style="margin-bottom: 0.5rem;">Submit Report</h3>
+                <p id="lms-status" style="font-size: 0.9rem; color: var(--ms-grey-secondary);">Your report will be securely transmitted to the examination board.</p>
+            </div>
+            <button class="ms-btn ms-btn-primary" id="lmsBtn" onclick="submitToLMS()">Submit Assessment</button>
+        </div>
 
-<script>
-const studentName = "{{ session.get('username', 'Student') }}";
-const examScore   = parseInt(sessionStorage.getItem('examScore') || '0');
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="/" style="color: var(--ms-blue); text-decoration: none; font-weight: 600;">Return to Portal Home</a>
+        </div>
+    </main>
 
-document.getElementById('result-title').textContent = `Results — ${studentName}`;
+    <script>
+        const studentName = "{{ session.get('username', 'Student') }}";
+        const examScore   = parseInt(sessionStorage.getItem('examScore') || '0');
+        const examTotal   = parseInt(sessionStorage.getItem('examTotal') || '10');
 
-fetch('/api/summary').then(r => r.json()).then(data => {
-    // Score
-    const scorePct = Math.round((examScore / 10) * 100);
-    document.getElementById('res-score').textContent = `${examScore}/10 (${scorePct}%)`;
-    document.getElementById('res-warn').textContent  = data.total_warnings;
-    document.getElementById('res-ev').textContent    = data.total_evidence;
+        document.getElementById('result-title').textContent = `${studentName}'s Assessment Report`;
 
-    // Verdict
-    const v = data.verdict;
-    document.getElementById('res-verdict').textContent = v === 'pass' ? 'Clean' : v === 'fail' ? 'Flagged' : 'Review';
-    document.getElementById('res-verdict').className = v === 'pass' ? 'sv text-success' : v === 'fail' ? 'sv danger-text' : 'sv text-warning';
+        fetch('/api/summary').then(r => r.json()).then(data => {
+            document.getElementById('res-score').textContent = `${examScore} / ${examTotal}`;
+            document.getElementById('res-warn').textContent  = data.total_warnings;
 
-    // Badge
-    const badge = document.getElementById('result-badge');
-    if (v === 'pass')        { badge.textContent = '✅ Pass'; badge.className = 'result-badge pass'; document.getElementById('result-sub').textContent = 'Exam completed with no integrity issues.'; }
-    else if (v === 'fail')   { badge.textContent = '🚫 Integrity Fail'; badge.className = 'result-badge fail'; document.getElementById('result-sub').textContent = 'Critical violations were detected during your exam.'; }
-    else                     { badge.textContent = '🔍 Under Review'; badge.className = 'result-badge review'; document.getElementById('result-sub').textContent = 'Your exam may require manual review.'; }
+            const v = data.verdict;
+            const resVerdict = document.getElementById('res-verdict');
+            resVerdict.textContent = v === 'pass' ? 'Excellent' : v === 'fail' ? 'Flagged' : 'Review';
+            resVerdict.style.color = v === 'pass' ? 'var(--ms-success)' : v === 'fail' ? 'var(--ms-danger)' : 'var(--ms-blue)';
 
-    // Evidence thumbnails
-    const evEl = document.getElementById('ev-preview');
-    if ((data.evidence||[]).length > 0) {
-        evEl.innerHTML = data.evidence.map(item =>
-            `<img class="ev-thumb" src="/static/evidence/${item.file}" title="${item.msg}"
-             onclick="showLightbox('/static/evidence/${item.file}')">`
-        ).join('');
-    }
-}).catch(() => {});
+            const badge = document.getElementById('result-badge');
+            const sub = document.getElementById('result-sub');
+            if (v === 'pass') {
+                badge.textContent = 'Pass'; badge.className = 'ms-badge ms-badge-success';
+                sub.textContent = 'Integrity check completed successfully. Your results are cleared.';
+            } else if (v === 'fail') {
+                badge.textContent = 'High Violation'; badge.className = 'ms-badge ms-badge-danger';
+                sub.textContent = 'Significant anomalies were detected during this session.';
+            } else {
+                badge.textContent = 'Attention Required'; badge.className = 'ms-badge ms-badge-info';
+                sub.textContent = 'A manual review of your session data is pending.';
+            }
 
-function submitToLMS() {
-    document.getElementById('lmsBtn').disabled = true;
-    fetch('/api/submit', { method:'POST' }).then(() => {
-        document.getElementById('lms-status').textContent = '✅ Report submitted to admin successfully.';
-        document.getElementById('lmsBtn').textContent = 'Submitted ✓';
-    }).catch(() => {
-        document.getElementById('lms-status').textContent = 'Submission failed. Please try again.';
-        document.getElementById('lmsBtn').disabled = false;
-    });
-}
+            const evEl = document.getElementById('ev-preview');
+            if ((data.evidence||[]).length > 0) {
+                evEl.innerHTML = data.evidence.map(item =>
+                    `<img class="ev-thumb" src="/static/evidence/${item.file}" title="${item.msg}">`
+                ).join('');
+            }
+        });
 
-function showLightbox(src) {
-    const lb = document.getElementById('lightbox');
-    document.getElementById('lb-img').src = src;
-    lb.style.display = 'flex';
-}
-</script>
+        function submitToLMS() {
+            const btn = document.getElementById('lmsBtn');
+            const status = document.getElementById('lms-status');
+            btn.disabled = true;
+            btn.textContent = "Transmitting...";
+            
+            fetch('/api/submit', { method:'POST' }).then(() => {
+                status.textContent = 'Report transmitted to board successfully.';
+                btn.textContent = 'Submitted ✓';
+            }).catch(() => {
+                status.textContent = 'Transmission failed. Attempting retry...';
+                btn.disabled = false;
+            });
+        }
+    </script>
 </body>
 </html>

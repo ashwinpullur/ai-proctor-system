@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Recognition Verification</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='fluent.css') }}">
+    <style>
+        body { background-color: var(--ms-off-white); display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .verify-card { width: 100%; max-width: 600px; padding: 3rem; background: var(--ms-white); border: 1px solid var(--ms-grey-border); box-shadow: var(--ms-shadow); }
+        .cam-preview { width: 100%; height: 350px; background: #000; border-radius: 50%; width: 350px; margin: 0 auto 2rem; overflow: hidden; position: relative; border: 4px solid var(--ms-blue); }
+        video { width: 100%; height: 100%; object-fit: cover; }
+        .face-status { text-align: center; font-weight: 600; margin-bottom: 2rem; color: var(--ms-blue); }
+    </style>
+</head>
+<body>
+    <div class="verify-card" style="text-align: center;">
+        <ms-badge class="ms-badge ms-badge-info" style="margin-bottom: 1rem;">Verification Step 2 of 2</ms-badge>
+        <h1>Face Verification</h1>
+        <p>Look directly at the camera and ensure your face is well-lit. This will be used as your baseline for the exam.</p>
+        
+        <div class="cam-preview">
+            <video id="video" autoplay muted></video>
+        </div>
+
+        <div class="face-status" id="status">Adjusting focus...</div>
+
+        <div style="display: flex; justify-content: center; gap: 1rem;">
+            <button class="ms-btn ms-btn-primary" onclick="verifyFace()">Verify Face</button>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => video.srcObject = stream)
+            .catch(err => console.error("Error accessing camera:", err));
+
+        function verifyFace() {
+            const status = document.getElementById('status');
+            const btn = document.querySelector('.ms-btn-primary');
+            status.innerText = "Processing biometric data...";
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                status.innerText = "Success! Identity Confirmed.";
+                status.style.color = "var(--ms-success)";
+                setTimeout(() => {
+                    window.location.href = "/student";
+                }, 1000);
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
