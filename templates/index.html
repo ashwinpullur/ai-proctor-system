@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Microsoft | AI Proctoring Portal</title>
+    <title>ScoreHunt | AI Proctorer Portal</title>
     <!-- Segoe UI is usually pre-installed on Windows, but let's add Inter as a high-quality fallback -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='fluent.css') }}">
@@ -108,13 +108,8 @@
     <header class="ms-header">
         <div class="container navbar">
             <a href="/" class="ms-logo-box">
-                <div class="ms-symbol">
-                    <div class="ms-red"></div>
-                    <div class="ms-green"></div>
-                    <div class="ms-blue-box"></div>
-                    <div class="ms-yellow"></div>
-                </div>
-                <span>Microsoft</span>
+                <div class="ms-symbol" style="background: var(--ms-blue); display: flex; align-items: center; justify-content: center; border-radius: 4px; color: white; font-weight: 800; font-size: 0.8rem;">SH</div>
+                <span>ScoreHunt AI Proctorer</span>
             </a>
             <div class="nav-links">
                 {% if session.get('logged_in') %}
@@ -132,8 +127,8 @@
         <section class="hero">
             <div class="container hero-content">
                 <div class="hero-text">
-                    <h1>Secure Exam Assessments.</h1>
-                    <p>Powered by AI. Designed for integrity. Take your next assessment with the world's most advanced proctoring system.</p>
+                    <h1>Secure Assessments with ScoreHunt.</h1>
+                    <p>Powered by ScoreHunt AI. Designed for integrity. Take your next assessment with the world's most advanced proctoring system.</p>
                     
                     {% if session.get('logged_in') %}
                         {% if session.get('role') == 'student' %}
@@ -180,7 +175,7 @@
     <footer class="footer">
         <div class="container">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>&copy; 2026 Microsoft. All rights reserved.</div>
+                <div>&copy; 2026 ScoreHunt AI Proctorer. All rights reserved.</div>
                 <div style="display: flex; gap: 2rem;">
                     <a href="#" style="text-decoration: none; color: inherit;">Privacy & Cookies</a>
                     <a href="#" style="text-decoration: none; color: inherit;">Terms of Use</a>

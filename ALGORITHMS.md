@@ -1,4 +1,4 @@
-# AI Proctor System - Technical Algorithms
+# ScoreHunt AI Proctorer - Technical Algorithms
 
 This document explains the core AI and behavioral analysis algorithms used to maintain exam integrity.
 
@@ -62,7 +62,7 @@ The system implements biometric typing pattern recognition as a behavioral layer
 
 ---
 
-## 5. Behavior Scoring (AlertSystem)
+## 5. Behavior Scoring (ScoreHunt AlertSystem)
 
 All violations are weighted:
 - **Critical (5 points)**: Multiple faces, Mobile phone detected, Tab switch.
