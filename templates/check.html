@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Proctor – Environment Check</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+    .check-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:2rem; }
+    .check-card {
+        max-width: 620px; width:100%;
+        background: rgba(17,24,39,0.75);
+        backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 28px; padding: 3rem 2.5rem;
+        box-shadow: 0 30px 80px rgba(0,0,0,0.55);
+        animation: fadeUp 0.5s ease;
+    }
+    .check-card h1 { font-size:1.75rem; font-weight:800; letter-spacing:-0.04em; margin-bottom:.5rem; }
+    .check-subtitle { color:#94a3b8; font-size:.9rem; line-height:1.6; margin-bottom:2rem; }
+
+    .check-list { display:flex; flex-direction:column; gap:.85rem; margin-bottom:2.5rem; }
+    .check-row {
+        display:grid; grid-template-columns: 2.5rem 1fr auto;
+        align-items:center; gap:1rem;
+        background:rgba(255,255,255,0.03);
+        border:1px solid rgba(255,255,255,0.07);
+        border-radius:16px; padding:1rem 1.25rem;
+        transition: border-color 0.3s;
+    }
+    .check-row.pass  { border-color:rgba(16,185,129,0.3); background:rgba(16,185,129,0.05); }
+    .check-row.fail  { border-color:rgba(244,63,94,0.3);  background:rgba(244,63,94,0.05);  }
+    .check-row.running { border-color:rgba(245,158,11,0.3); background:rgba(245,158,11,0.05); }
+
+    .check-icon { font-size:1.5rem; }
+    .check-info strong { display:block; font-size:.9rem; font-weight:600; margin-bottom:.15rem; }
+    .check-info span   { font-size:.78rem; color:#94a3b8; }
+    .check-status {
+        font-size:.78rem; font-weight:700; letter-spacing:.04em;
+        text-transform:uppercase; padding:.3rem .75rem; border-radius:40px;
+        color:#94a3b8; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08);
+        white-space:nowrap;
+    }
+    .check-status.pass  { color:#10b981; background:rgba(16,185,129,0.1); border-color:rgba(16,185,129,0.2); }
+    .check-status.fail  { color:#f43f5e; background:rgba(244,63,94,0.1);  border-color:rgba(244,63,94,0.2);  }
+    .check-status.running { color:#f59e0b; background:rgba(245,158,11,0.1); border-color:rgba(245,158,11,0.2); animation:flash 1s infinite alternate; }
+
+    /* Baseline progress */
+    .baseline-wrap { grid-column:1/-1; margin-top:.5rem; }
+    .baseline-bar-bg { background:rgba(255,255,255,0.07); border-radius:4px; height:6px; overflow:hidden; }
+    .baseline-bar    { background:linear-gradient(90deg,#6366f1,#3b82f6); height:100%; width:0%; transition:width .5s ease; border-radius:4px; }
+    .baseline-label  { font-size:.72rem; color:#64748b; margin-top:.4rem; }
+
+    .proceed-btn {
+        width:100%;
+        background: linear-gradient(135deg,#6366f1 0%,#3b82f6 100%);
+        color:#fff; border:none; padding:1.1rem; border-radius:16px;
+        font-size:1rem; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif;
+        box-shadow: 0 8px 28px rgba(99,102,241,0.3);
+        transition: all .25s ease;
+    }
+    .proceed-btn:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 12px 36px rgba(99,102,241,0.4); }
+    .proceed-btn:disabled { opacity:.35; cursor:not-allowed; transform:none; }
+
+    .spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(245,158,11,0.3); border-top-color:#f59e0b; border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; margin-right:4px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+<div class="check-screen">
+    <div class="check-card">
+        <h1>⚙️ Environment Check</h1>
+        <p class="check-subtitle">Verifying all requirements before the exam begins. All checks are <strong style="color:#f8fafc">mandatory</strong>.</p>
+
+        <div class="check-list">
+            <!-- Internet -->
+            <div class="check-row" id="row-internet">
+                <span class="check-icon">🌐</span>
+                <div class="check-info"><strong>Internet Connection</strong><span id="internet-detail">Checking latency...</span></div>
+                <span class="check-status running" id="status-internet"><span class="spinner"></span>Checking</span>
+            </div>
+
+            <!-- Camera -->
+            <div class="check-row" id="row-camera">
+                <span class="check-icon">📹</span>
+                <div class="check-info"><strong>Camera Access</strong><span id="camera-detail">Requesting permission...</span></div>
+                <span class="check-status running" id="status-camera"><span class="spinner"></span>Checking</span>
+            </div>
+
+            <!-- Audio -->
+            <div class="check-row" id="row-audio">
+                <span class="check-icon">🎤</span>
+                <div class="check-info"><strong>Microphone Access</strong><span id="audio-detail">Requesting permission...</span></div>
+                <span class="check-status running" id="status-audio"><span class="spinner"></span>Checking</span>
+            </div>
+
+            <!-- Baseline -->
+            <div class="check-row" id="row-baseline">
+                <span class="check-icon">⌨️</span>
+                <div class="check-info"><strong>Baseline Capture</strong><span id="baseline-detail">Type and move your mouse for 30 seconds to calibrate.</span></div>
+                <span class="check-status" id="status-baseline">Waiting</span>
+                <div class="baseline-wrap" id="baseline-wrap" style="display:none;">
+                    <div class="baseline-bar-bg"><div class="baseline-bar" id="baseline-bar"></div></div>
+                    <div class="baseline-label" id="baseline-label">0 / 30 seconds</div>
+                </div>
+            </div>
+        </div>
+
+        <button class="proceed-btn" id="proceedBtn" disabled>
+            Start Exam →
+        </button>
+    </div>
+</div>
+
+<script>
+const studentName = sessionStorage.getItem('studentName') || 'Student';
+let checks = { internet: false, camera: false, audio: false, baseline: false };
+let mediaStream = null;
+
+function setCheck(id, state, detail) {
+    const row    = document.getElementById(`row-${id}`);
+    const status = document.getElementById(`status-${id}`);
+    const det    = document.getElementById(`${id}-detail`);
+    row.className    = `check-row ${state}`;
+    status.className = `check-status ${state}`;
+    status.textContent = state === 'pass' ? '✔ Passed' : state === 'fail' ? '✘ Failed' : 'Running...';
+    if (det && detail) det.textContent = detail;
+    checks[id] = state === 'pass';
+    if (Object.values(checks).every(Boolean)) {
+        document.getElementById('proceedBtn').disabled = false;
+    }
+}
+
+// 1. Internet check
+async function checkInternet() {
+    try {
+        const t0 = Date.now();
+        await fetch('/api/stats', { cache: 'no-store' });
+        const ms = Date.now() - t0;
+        setCheck('internet', 'pass', `Connection OK — ${ms}ms latency`);
+    } catch {
+        setCheck('internet', 'fail', 'No internet connection detected.');
+    }
+}
+
+// 2. Camera check
+async function checkCamera() {
+    try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        setCheck('camera', 'pass', 'Camera access granted.');
+        setCheck('audio', 'pass', 'Microphone access granted.');
+        startBaseline();
+    } catch (e) {
+        setCheck('camera', 'fail', 'Camera permission denied.');
+        setCheck('audio', 'fail', 'Microphone permission denied.');
+    }
+}
+
+// 3. Baseline capture (30 s)
+let keyCount = 0, mouseMoves = 0, baselineTimer = null;
+
+function startBaseline() {
+    const row = document.getElementById('row-baseline');
+    const wrap = document.getElementById('baseline-wrap');
+    const bar  = document.getElementById('baseline-bar');
+    const lbl  = document.getElementById('baseline-label');
+    const st   = document.getElementById('status-baseline');
+
+    row.className = 'check-row running';
+    st.className  = 'check-status running';
+    st.innerHTML  = '<span class="spinner"></span>Capturing';
+    wrap.style.display = 'block';
+
+    document.addEventListener('keydown', () => keyCount++);
+    document.addEventListener('mousemove', () => mouseMoves++);
+
+    let elapsed = 0;
+    const TOTAL = 30;
+    baselineTimer = setInterval(() => {
+        elapsed++;
+        const pct = (elapsed / TOTAL) * 100;
+        bar.style.width = pct + '%';
+        lbl.textContent = `${elapsed} / ${TOTAL} seconds — ${keyCount} keystrokes, ${mouseMoves} mouse moves`;
+
+        if (elapsed >= TOTAL) {
+            clearInterval(baselineTimer);
+            // Save baseline to session
+            sessionStorage.setItem('baseline', JSON.stringify({ keyCount, mouseMoves, duration: TOTAL }));
+            // POST to server
+            fetch('/api/set_baseline', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ student: studentName, keyCount, mouseMoves, duration: TOTAL })
+            }).catch(() => {});
+            setCheck('baseline', 'pass', `Baseline set: ${keyCount} keys, ${mouseMoves} mouse moves in 30s`);
+        }
+    }, 1000);
+}
+
+document.getElementById('proceedBtn').addEventListener('click', () => {
+    if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+    window.location.href = '/exam';
+});
+
+// Run checks sequentially
+checkInternet().then(() => checkCamera());
+</script>
+</body>
+</html>

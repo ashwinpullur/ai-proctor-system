@@ -1,0 +1,10 @@
+venv/
+__pycache__/
+*.pyc
+.env
+users.json
+static/evidence/*
+static/sessions/*
+.vscode/
+.idea/
+*.log

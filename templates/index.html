@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Proctor – Exam Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .landing-hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .landing-card {
+            max-width: 760px;
+            width: 100%;
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 32px;
+            padding: 3.5rem;
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
+            animation: fadeUp 0.6s ease;
+        }
+
+        .exam-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(99, 102, 241, 0.12);
+            color: #a5b4fc;
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            padding: 0.4rem 1rem;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+        }
+
+        .landing-card h1 {
+            font-size: 2.75rem;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            line-height: 1.15;
+        }
+
+        .landing-card p {
+            color: #94a3b8;
+            font-size: 1.05rem;
+            line-height: 1.7;
+            margin-bottom: 2rem;
+        }
+
+        .exam-meta {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .meta-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 16px;
+            padding: 1.25rem;
+            text-align: center;
+        }
+
+        .meta-item .meta-val {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #f8fafc;
+            margin-bottom: 0.3rem;
+        }
+
+        .meta-item .meta-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .name-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .name-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 0.9rem 1.25rem;
+            font-size: 0.95rem;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .name-input:focus {
+            border-color: rgba(99, 102, 241, 0.5);
+        }
+
+        .name-input::placeholder {
+            color: #475569;
+        }
+
+        .take-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+            color: #fff;
+            border: none;
+            padding: 1.1rem;
+            border-radius: 16px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 28px rgba(99, 102, 241, 0.35);
+            transition: all 0.25s ease;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: -0.01em;
+        }
+
+        .take-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 36px rgba(99, 102, 241, 0.45);
+        }
+
+        .take-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .admin-link {
+            display: block;
+            text-align: center;
+            margin-top: 1.5rem;
+            color: #475569;
+            font-size: 0.85rem;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .admin-link:hover {
+            color: #94a3b8;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="landing-hero">
+        <div class="landing-card">
+            <div class="exam-badge">🎓 Online Exam Platform</div>
+            <h1>AI-Proctored<br>Examination</h1>
+            <p>This exam is monitored by an AI proctoring system that uses your camera, microphone, and activity
+                patterns to ensure academic integrity. Read all requirements carefully before proceeding.</p>
+
+            <div class="exam-meta">
+                <div class="meta-item">
+                    <div class="meta-val">60</div>
+                    <div class="meta-label">Minutes</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-val">10</div>
+                    <div class="meta-label">Questions</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-val">10</div>
+                    <div class="meta-label">Violation Limit</div>
+                </div>
+            </div>
+
+            <div class="name-row">
+                <!-- Removed direct name input, using student login now -->
+            </div>
+
+            {% if session.get('logged_in') %}
+            <div style="text-align: center; color: #f8fafc; margin-bottom: 2rem;">
+                Logged in as <strong>{{ session.get('username') }}</strong> ({{ session.get('role') }})
+                <br><br>
+                <a href="{{ url_for('logout') }}" style="color: #6366f1; text-decoration: none;">Logout</a>
+            </div>
+            {% if session.get('role') == 'student' %}
+            <button class="take-btn" onclick="window.location.href='/student'">
+                Go to Exam Dashboard →
+            </button>
+            {% else %}
+            <button class="take-btn" onclick="window.location.href='/admin'">
+                Go to Admin Panel →
+            </button>
+            {% endif %}
+            {% else %}
+            <button class="take-btn" id="takeExamBtn" onclick="window.location.href='/student/login'">
+                Student Login →
+            </button>
+            <a href="/admin/login" class="admin-link">Admin Access →</a>
+            {% endif %}
+        </div>
+    </div>
+    <script>
+        // Logic moved to login/exam pages
+    </script>
+</body>
+
+</html>
