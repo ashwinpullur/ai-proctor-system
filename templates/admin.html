@@ -49,6 +49,14 @@
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+
+        /* Report Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 2rem; }
+        .modal-content { background: var(--ms-white); width: 100%; max-width: 900px; max-height: 90vh; border-radius: var(--ms-radius); box-shadow: 0 24px 48px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; }
+        .modal-header { padding: 1.5rem 2rem; border-bottom: 1px solid var(--ms-grey-border); display: flex; justify-content: space-between; align-items: center; background: var(--ms-grey-light); }
+        .modal-body { padding: 2rem; overflow-y: auto; flex: 1; }
+        .ev-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; margin-top: 1rem; }
+        .ev-gallery img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 4px; border: 1px solid var(--ms-grey-border); }
     </style>
 </head>
 <body>
@@ -80,8 +88,10 @@
             <!-- DASHBOARD SECTION -->
             <section id="sec-dashboard" class="admin-section">
             
-            <div style="width: 100%; border-radius: var(--ms-radius); overflow: hidden; margin-bottom: 2rem; box-shadow: var(--ms-shadow);">
-                <img src="/static/scorehunt_admin_banner.png" alt="ScoreHunt Admin Dashboard Banner" style="width: 100%; height: 180px; object-fit: cover; display: block;">
+            <div style="width: 100%; border-radius: var(--ms-radius); overflow: hidden; margin-bottom: 2rem; box-shadow: var(--ms-shadow); position: relative;">
+                <img src="/static/scorehunt_ai_agent_banner.png" alt="ScoreHunt AI Agent Dashboard" style="width: 100%; height: 200px; object-fit: cover; display: block;">
+                <!-- Subtle gradient overlay to make any future text pop if needed -->
+                <div style="position: absolute; inset: 0; background: linear-gradient(to right, rgba(0,0,0,0.4) 0%, transparent 100%); pointer-events: none;"></div>
             </div>
 
             <div class="section-header">
@@ -232,6 +242,40 @@
         </main>
     </div>
 
+    <!-- REPORT MODAL -->
+    <div class="modal-overlay" id="report-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 style="margin: 0; font-size: 1.25rem;" id="rm-title">Student Assessment Report</h2>
+                    <p style="margin: 0; margin-top: 0.25rem; font-size: 0.85rem; color: var(--ms-grey-secondary);" id="rm-date">Processing...</p>
+                </div>
+                <button class="ms-btn ms-btn-secondary" onclick="document.getElementById('report-modal').style.display='none'">Close</button>
+            </div>
+            <div class="modal-body">
+                <div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 2rem;">
+                    <div class="kpi-card" style="padding: 1rem;"><div class="label">Total Warnings</div><div class="value" id="rm-warn">0</div></div>
+                    <div class="kpi-card" style="padding: 1rem;"><div class="label">Tab Switches</div><div class="value" id="rm-tabs">0</div></div>
+                    <div class="kpi-card" style="padding: 1rem;"><div class="label">Integrity Verdict</div><div class="value" id="rm-verdict" style="font-size: 1.2rem;">Unknown</div></div>
+                </div>
+
+                <div class="ms-grid" style="grid-template-columns: 1.5fr 1fr; gap: 1.5rem;">
+                    <div>
+                        <h3 style="margin-bottom: 1rem; font-size: 1rem;">Captured Evidence</h3>
+                        <p id="rm-no-evidence" style="color: var(--ms-grey-secondary); font-size: 0.85rem;">No evidence captured during this session.</p>
+                        <div class="ev-gallery" id="rm-gallery"></div>
+                    </div>
+                    <div>
+                        <h3 style="margin-bottom: 1rem; font-size: 1rem;">Session Event Log</h3>
+                        <div id="rm-events" style="border: 1px solid var(--ms-grey-border); border-radius: 4px; padding: 1rem; background: var(--ms-off-white); font-family: monospace; font-size: 0.8rem; overflow-y: auto; max-height: 400px; display: flex; flex-direction: column; gap: 0.5rem;">
+                            <!-- Events go here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // SPA Tab Switching Logic
         function switchSection(sectionId, element) {
@@ -360,10 +404,54 @@
                         <td>${dt}</td>
                         <td><span class="ms-badge ${s.warnings >= 5 ? 'ms-badge-danger' : 'ms-badge-success'}">${s.warnings >= 5 ? 'Fail' : 'Pass'}</span></td>
                         <td>${s.warnings}</td>
-                        <td><a href="#" style="color: var(--ms-blue);">View Report</a></td>
+                        <td><a href="#" onclick="viewReport('${s.id}')" style="color: var(--ms-blue);">View Report</a></td>
                     `;
                     tbody.appendChild(tr);
                 });
+            });
+        }
+
+        function viewReport(sessionId) {
+            fetch('/api/sessions/' + sessionId).then(r => r.json()).then(data => {
+                const isFail = data.warnings >= 5 || data.tab_switches >= 3;
+                
+                document.getElementById('rm-title').textContent = `${data.student || 'Unknown'}'s Assessment Report`;
+                document.getElementById('rm-date').textContent = new Date(data.started_at * 1000).toLocaleString() + ' — ' + new Date(data.ended_at * 1000).toLocaleString();
+                
+                document.getElementById('rm-warn').textContent = data.warnings || 0;
+                document.getElementById('rm-warn').style.color = (data.warnings || 0) >= 15 ? 'var(--ms-danger)' : 'var(--ms-blue)';
+                
+                document.getElementById('rm-tabs').textContent = data.tab_switches || 0;
+                document.getElementById('rm-tabs').style.color = (data.tab_switches || 0) >= 3 ? 'var(--ms-danger)' : 'var(--ms-blue)';
+                
+                document.getElementById('rm-verdict').textContent = isFail ? 'Failed (High Variance)' : 'Passed (Normal)';
+                document.getElementById('rm-verdict').style.color = isFail ? 'var(--ms-danger)' : 'var(--ms-success)';
+
+                const gal = document.getElementById('rm-gallery');
+                const noEv = document.getElementById('rm-no-evidence');
+                if (data.evidence && data.evidence.length > 0) {
+                    noEv.style.display = 'none';
+                    gal.style.display = 'grid';
+                    gal.innerHTML = data.evidence.map(e => `
+                        <div title="${e.msg}"><img src="/static/evidence/${e.file}"></div>
+                    `).join('');
+                } else {
+                    noEv.style.display = 'block';
+                    gal.style.display = 'none';
+                }
+
+                const evLog = document.getElementById('rm-events');
+                if (data.events && data.events.length > 0) {
+                    evLog.innerHTML = data.events.map(e => `
+                        <div><span style="color:#64748b; margin-right:8px;">${new Date(e.timestamp * 1000).toLocaleTimeString()}</span> ${e.msg}</div>
+                    `).join('');
+                } else {
+                    evLog.innerHTML = `<span style="color:#64748b;">No notable events recorded.</span>`;
+                }
+
+                document.getElementById('report-modal').style.display = 'flex';
+            }).catch(e => {
+                alert('Could not load report details: ' + e);
             });
         }
 
