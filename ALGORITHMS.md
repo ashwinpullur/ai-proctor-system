@@ -1,4 +1,4 @@
-# ScoreHunt AI Proctorer - Technical Algorithms
+# ScoreHunt AI Proctorer - Technical Algorithm Reference
 
 This document explains the core AI and behavioral analysis algorithms used to maintain exam integrity.
 

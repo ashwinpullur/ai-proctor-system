@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScoreHunt | Unified Sign-in</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='fluent.css') }}">
+    <style>
+        body {
+            background-color: var(--ms-off-white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .login-card {
+            width: 100%;
+            max-width: 440px;
+            padding: 2.75rem;
+            background: var(--ms-white);
+            border: 1px solid var(--ms-grey-border);
+            box-shadow: 0 2px 4px rgba(0,0,0,.14);
+        }
+        .ms-logo-small {
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        h2 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #1b1b1b; }
+        /* Main Layout */
+        .login-split {
+            display: flex;
+            flex: 1; /* Take remaining vertical space */
+            min-height: calc(100vh - 65px); /* Account for header */
+            width: 100%;
+        }
+        
+        /* Left Column: Form */
+        .login-form-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: var(--ms-off-white);
+        }
+        
+        .login-card {
+            width: 100%;
+            max-width: 440px;
+            padding: 3rem;
+            background: var(--ms-white);
+            border: 1px solid var(--ms-grey-border);
+            border-radius: var(--ms-radius);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Right Column: Graphic */
+        .login-graphic-container {
+            flex: 1;
+            display: none;
+            background: var(--ms-blue);
+            position: relative;
+            overflow: hidden;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (min-width: 900px) {
+            .login-graphic-container { display: flex; }
+        }
+
+        .login-graphic {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.95;
+        }
+
+        .graphic-overlay-text {
+            position: absolute;
+            bottom: 3rem;
+            left: 3rem;
+            right: 3rem;
+            color: white;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            text-align: left;
+        }
+
+        /* Form Elements */
+        .form-group { display: flex; flex-direction: column; gap: 0.5rem; text-align: left; }
+        .form-label { font-size: 0.85rem; font-weight: 600; color: var(--ms-grey-text); }
+        
+        /* Interactive Input Wrappers */
+        .input-icon-wrapper { position: relative; display: flex; align-items: center; }
+        .input-icon-wrapper input { padding-left: 2.5rem; }
+        .input-icon { position: absolute; left: 0.75rem; color: var(--ms-grey-secondary); font-size: 1.1rem; }
+
+        /* Role Switcher Tabs */
+        .role-tabs {
+            display: flex; background: var(--ms-grey-light); border-radius: 6px; padding: 4px; margin-bottom: 0.5rem;
+        }
+        .role-tab {
+            flex: 1; text-align: center; padding: 0.6rem; font-size: 0.9rem; font-weight: 600; cursor: pointer; border-radius: 4px; color: var(--ms-grey-text); transition: all 0.2s ease;
+        }
+        .role-tab.active { background: var(--ms-white); color: var(--ms-blue); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        
+        .alert { padding: 1rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; }
+        .alert-error { background: #fee2e2; color: #b91c1c; border-left: 4px solid #b91c1c; }
+        .alert-info { background: #e0f2fe; color: #0284c7; border-left: 4px solid #0284c7; }
+    </style>
+</head>
+<body>
+    <header class="ms-header">
+        <div class="container navbar">
+            <a href="/" class="ms-logo-box">
+                <div class="ms-symbol" style="background: var(--ms-blue); width: 20px; height: 20px; border-radius: 4px; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800;">SH</div>
+                <span>ScoreHunt AI Proctorer</span>
+            </a>
+            <div class="nav-links">
+                <a href="/">Home</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="login-split">
+        <div class="login-form-container">
+            <div class="login-card">
+                <div class="ms-logo-small">
+                    <div class="ms-symbol-tiny" style="background: var(--ms-blue); width: 16px; height: 16px; border-radius: 2px; color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800;">SH</div>
+                    <span>ScoreHunt</span>
+                </div>
+                <h2>Sign in</h2>
+                <p style="font-size: 0.9rem; color: var(--ms-grey-secondary);">Choose your role to continue</p>
+
+                <div class="role-tabs">
+                    <div class="role-tab active" id="tab-student" onclick="setRole('student')">Student</div>
+                    <div class="role-tab" id="tab-admin" onclick="setRole('admin')">Administrator</div>
+                </div>
+
+                {% if error %}
+                <div class="alert alert-error">
+                    <i class="ms-Icon ms-Icon--ErrorBadge"></i>
+                    <span>{{ error }}</span>
+                </div>
+                {% endif %}
+
+                <form method="POST" action="/login">
+                    <input type="hidden" name="role" id="input-role" value="student">
+                    
+                    <div class="form-group">
+                        <label for="username" class="form-label">Username</label>
+                        <div class="input-icon-wrapper">
+                            <i class="ms-Icon ms-Icon--Contact input-icon"></i>
+                            <input type="text" name="username" id="username" class="ms-input" placeholder="Enter your username" required autofocus>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="input-icon-wrapper">
+                            <i class="ms-Icon ms-Icon--Lock input-icon"></i>
+                            <input type="password" name="password" id="password" class="ms-input" placeholder="Enter your password" required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="ms-btn ms-btn-primary" style="width: 100%; margin-top: 1rem;" id="submit-btn" onclick="this.innerHTML='Authenticating...';">Sign in as Student</button>
+                    
+                    <div style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem;">
+                        <span id="signup-prompt">Need an account? <a href="/student_register" id="signup-link" style="color: var(--ms-blue); font-weight: 600;">Sign up as a Student</a></span>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="login-graphic-container">
+            <img class="login-graphic" src="/static/scorehunt_login_illustration.png" alt="Secure Artificial Intelligence Security Shield">
+            <div class="graphic-overlay-text">
+                <h2 style="font-size: 2rem; margin-bottom: 0.5rem; font-weight: 700;">Secure. Intelligent. Seamless.</h2>
+                <p style="font-size: 1.1rem; opacity: 0.9; max-width: 80%;">The next generation of academic integrity powered by advanced cognitive computing.</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function setRole(role) {
+            document.getElementById('input-role').value = role;
+            
+            // Toggle tabs
+            document.getElementById('tab-student').classList.toggle('active', role === 'student');
+            document.getElementById('tab-admin').classList.toggle('active', role === 'admin');
+            
+            // Toggle footer content
+            document.getElementById('student-footer').style.display = role === 'student' ? 'block' : 'none';
+            document.getElementById('admin-footer').style.display = role === 'admin' ? 'block' : 'none';
+        }
+    </script>
+</body>
+</html>

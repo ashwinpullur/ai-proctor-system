@@ -56,7 +56,7 @@ class VisionMonitor:
                 base_options=mp_base_options.BaseOptions(model_asset_path=OBJ_MODEL_PATH),
                 running_mode=mp_vision.RunningMode.IMAGE,
                 max_results=10,
-                score_threshold=0.45,
+                score_threshold=0.35,
             )
         )
 
@@ -184,7 +184,7 @@ class VisionMonitor:
         obj_results = self.obj_det.detect(mp_img)
 
         # Phone / device labels (COCO classes)
-        PHONE_LABELS = {"cell phone", "mobile phone", "phone", "remote"}
+        PHONE_LABELS = {"cell phone", "mobile phone", "phone", "remote", "laptop"}
         # Book label — physical books have thickness+spine visible to camera.
         # Papers are NOT a COCO class so the model naturally ignores them.
         BOOK_LABELS  = {"book"}
@@ -195,7 +195,7 @@ class VisionMonitor:
                 score = cat.score
                 bb    = det.bounding_box
 
-                if label in PHONE_LABELS and score >= 0.45:
+                if label in PHONE_LABELS and score >= 0.35:
                     msg = f"Phone/device detected ({cat.category_name}: {score:.0%})"
                     infractions.append(msg)
                     self.current_status = "⚠ Phone Detected!"
@@ -208,7 +208,7 @@ class VisionMonitor:
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
                     evidence = self._save_evidence(frame, "phone_detected")
 
-                elif label in BOOK_LABELS and score >= 0.45:
+                elif label in BOOK_LABELS and score >= 0.35:
                     msg = f"Book detected in frame ({score:.0%}) — possible cheating material"
                     infractions.append(msg)
                     self.current_status = "⚠ Book Detected!"

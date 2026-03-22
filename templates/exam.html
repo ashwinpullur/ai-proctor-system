@@ -230,11 +230,19 @@
 <!-- ══════════════════════════════════════════════════════════════════════════
      TAB-SWITCH WARNING TOAST
 ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════════════════════════════════════
+     TAB-SWITCH WARNING TOAST
+═══════════════════════════════════════════════════════════════════════════ -->
 <div id="tab-warn-toast">
     <div class="toast-title" id="toast-title">⚠️ Tab Switch Detected</div>
     <div class="toast-sub"  id="toast-sub">Warning 1 of 3 — Return to exam immediately</div>
     <div class="toast-bar"><div class="toast-fill" id="toast-fill" style="width:100%"></div></div>
 </div>
+
+<!-- Hidden video element to capture the local camera stream for the canvas to read and upload -->
+<video id="local-video" autoplay playsinline muted style="position:absolute; width:10px; height:10px; opacity:0; pointer-events:none; z-index:-1;"></video>
+
+
 
 <!-- ══════════════════════════════════════════════════════════════════════════
      MAIN EXAM LAYOUT
@@ -360,6 +368,7 @@ async function requestAllPermissions() {
     try {
         const camStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
         mediaStreams.camera = camStream;
+        document.getElementById('local-video').srcObject = camStream; // Attach stream to video tag
         permState.camera = true;
         setPermStatus('camera', 'granted');
         updateBadge('badge-cam', true);
@@ -919,6 +928,63 @@ function addLogEntry(msg, cls) {
 }
 
 document.addEventListener('contextmenu', e => e.preventDefault());
+// ── REAL-TIME STREAMING TO SERVER ───────────────────────────────────────────
+let streamInterval = null;
+const streamCanvas = document.createElement('canvas');
+const streamCtx = streamCanvas.getContext('2d');
+
+function startStreaming() {
+    if (streamInterval) return;
+    console.log("[Stream] Starting upload to server...");
+    streamCanvas.width = 640;
+    streamCanvas.height = 480;
+    
+    streamInterval = setInterval(async () => {
+        if (!mediaStreams.camera) return;
+        
+        const videoEl = document.getElementById('local-video');
+        if (videoEl.videoWidth === 0) return; // Wait until video has loaded
+
+        // Draw video frame to canvas
+        streamCtx.drawImage(videoEl, 0, 0, 640, 480);
+        
+        // Convert to blob
+        streamCanvas.toBlob(async (blob) => {
+            if (!blob) return;
+            const formData = new FormData();
+            formData.append('frame', blob, 'frame.jpg');
+            
+            try {
+                const resp = await fetch('/api/stream/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await resp.json();
+                if (data.infractions && data.infractions.length > 0) {
+                    // Vision infractions are logged on backend, but we could update UI here too
+                }
+            } catch (e) {
+                console.error("[Stream] Upload error:", e);
+            }
+        }, 'image/jpeg', 0.6); // Lower quality for speed
+    }, 500); // 2 FPS
+}
+
+function stopStreaming() {
+    if (streamInterval) {
+        clearInterval(streamInterval);
+        streamInterval = null;
+    }
+}
+
+// Start streaming when exam starts
+const originalStartExam = window.startExamAfterPermissions;
+window.startExamAfterPermissions = async function() {
+    await originalStartExam();
+    startStreaming();
+};
+
+window.onbeforeunload = stopStreaming;
 </script>
 </body>
 </html>

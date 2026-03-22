@@ -116,8 +116,8 @@
                 <span style="margin-right: 1.5rem;">Hello, <strong>{{ session.username }}</strong></span>
                 <a href="{{ url_for('logout') }}" class="ms-btn ms-btn-secondary" style="padding: 0.4rem 1rem;">Logout</a>
                 {% else %}
-                <a href="/admin/login" style="margin-right: 1.5rem; text-decoration: none; color: var(--ms-blue); font-weight: 600;">Admin Sign In</a>
-                <a href="/student/login" class="ms-btn ms-btn-primary">Sign in</a>
+                <a href="/login" style="margin-right: 1.5rem; text-decoration: none; color: var(--ms-blue); font-weight: 600;">Sign In</a>
+                <a href="/student/register" class="ms-btn ms-btn-primary">Register</a>
                 {% endif %}
             </div>
         </div>
@@ -137,7 +137,7 @@
                         <a href="/admin" class="ms-btn ms-btn-primary" style="font-size: 1.1rem; padding: 0.8rem 2.5rem;">Admin Dashboard</a>
                         {% endif %}
                     {% else %}
-                        <a href="/student/login" class="ms-btn ms-btn-primary" style="font-size: 1.1rem; padding: 0.8rem 2.5rem;">Get Started</a>
+                        <a href="/login" class="ms-btn ms-btn-primary" style="font-size: 1.1rem; padding: 0.8rem 2.5rem;">Get Started</a>
                     {% endif %}
                 </div>
                 <div class="hero-image">

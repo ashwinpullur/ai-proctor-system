@@ -1,6 +1,7 @@
 from flask import Flask, render_template, Response, jsonify, request, send_from_directory, redirect, url_for, session
 import os
 import cv2
+import numpy as np
 import threading
 import time
 import json
@@ -29,6 +30,10 @@ TAB_SWITCH_LIMIT = 3    # terminate after this many tab-switch violations
 vision_monitor = VisionMonitor()
 audio_monitor  = None
 os_monitor     = None
+
+# LIVE STREAMS: map username -> raw_frame_bytes
+ACTIVE_STREAMS = {}
+PROCESSED_STREAMS = {}
 
 EVIDENCE_DIR  = os.path.join('static', 'evidence')
 SESSIONS_DIR  = os.path.join('static', 'sessions')
@@ -123,34 +128,25 @@ def stop_exam():
         os_monitor = None
 
 # ── Video feed ────────────────────────────────────────────────────────────────
-def generate_frames():
-    global is_exam_active
-    cap = cv2.VideoCapture(0)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-
+def generate_frames(username=None):
+    """Serve processed frames for a specific student."""
     while True:
-        success, frame = cap.read()
-        if not success:
-            break
-
-        if is_exam_active:
-            processed, infractions, evidence = vision_monitor.process_frame(frame)
-            for inf in infractions:
-                log_infraction(f"Vision: {inf}", evidence)
-            ret, buffer = cv2.imencode('.jpg', processed)
+        if username and username in PROCESSED_STREAMS:
+            frame_bytes = PROCESSED_STREAMS[username]
+            yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
         else:
-            cv2.putText(frame, "Waiting to Start Exam", (50, 50),
+            # Placeholder if no stream
+            black_frame = np.zeros((480, 640, 3), dtype=np.uint8)
+            cv2.putText(black_frame, "No Active Feed", (180, 240),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-            ret, buffer = cv2.imencode('.jpg', frame)
-
-        frame_bytes = buffer.tobytes()
-        yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+            ret, buffer = cv2.imencode('.jpg', black_frame)
+            yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+        time.sleep(0.3) # Avoid tight loop
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', title="ScoreHunt | Home")
 
 @app.route('/check')
 def check():
@@ -198,21 +194,30 @@ def student_register():
         return redirect(url_for('student_login'))
     return render_template('student_signup.html')
 
-@app.route('/student/login', methods=['GET', 'POST'])
-def student_login():
-    """Login flow for students."""
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Unified login flow for students and admins."""
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        role     = request.form.get('role', 'student') # Default to student
+        
         users = load_users()
         user_data = users.get(username)
-        if user_data and user_data.get('role') == 'student' and check_password_hash(user_data['password'], password):
+        
+        if user_data and user_data.get('role') == role and check_password_hash(user_data['password'], password):
             session['logged_in'] = True
-            session['username'] = username
-            session['role'] = 'student'
-            return redirect(url_for('verify_id'))
-        return render_template('student_login.html', error="Invalid student credentials")
-    return render_template('student_login.html')
+            session['username']  = username
+            session['role']      = role
+            
+            if role == 'admin':
+                return redirect(url_for('admin'))
+            else:
+                return redirect(url_for('verify_id'))
+                
+        return render_template('login.html', error=f"Invalid {role} credentials")
+        
+    return render_template('login.html')
 
 @app.route('/admin/register', methods=['GET', 'POST'])
 def admin_register():
@@ -231,21 +236,13 @@ def admin_register():
         return redirect(url_for('admin_login'))
     return render_template('admin_signup.html')
 
+@app.route('/student/login', methods=['GET', 'POST'])
+def student_login():
+    return redirect(url_for('login'))
+
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
-    """Login flow for admin."""
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        users = load_users()
-        user_data = users.get(username)
-        if user_data and user_data.get('role') == 'admin' and check_password_hash(user_data['password'], password):
-            session['logged_in'] = True
-            session['username'] = username
-            session['role'] = 'admin'
-            return redirect(url_for('admin'))
-        return render_template('admin_login.html', error="Invalid credentials")
-    return render_template('admin_login.html')
+    return redirect(url_for('login'))
 
 @app.route('/logout')
 def logout():
@@ -263,7 +260,39 @@ def admin():
 
 @app.route('/video_feed')
 def video_feed():
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    # Attempt to stream for current student if logged in
+    user = session.get('username')
+    return Response(generate_frames(user), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/admin/stream/<username>')
+@admin_required
+def admin_video_feed(username):
+    return Response(generate_frames(username), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/api/stream/upload', methods=['POST'])
+@student_required
+def upload_frame():
+    global PROCESSED_STREAMS
+    file = request.files.get('frame')
+    if not file:
+        return jsonify({"error": "No frame"}), 400
+    
+    username = session.get('username')
+    nparr = np.frombuffer(file.read(), np.uint8)
+    frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    
+    if frame is not None:
+        # Process frame
+        processed, infractions, evidence = vision_monitor.process_frame(frame)
+        for inf in infractions:
+            log_infraction(f"Vision: {inf}", evidence)
+        
+        # Store for admin view
+        _, buffer = cv2.imencode('.jpg', processed)
+        PROCESSED_STREAMS[username] = buffer.tobytes()
+        return jsonify({"status": "ok", "infractions": infractions})
+    
+    return jsonify({"error": "Decode failed"}), 500
 
 @app.route('/api/stats')
 def get_stats():
@@ -434,7 +463,21 @@ def report_event():
     if is_tab_event or is_shortcut:
         cheat_stats["tab_switches"] = cheat_stats.get("tab_switches", 0) + 1
         switch_count = cheat_stats["tab_switches"]
-        evidence_file = vision_monitor.capture_event_frame(msg) if vision_monitor else None
+        username = session.get('username')
+        
+        # Capture evidence from the latest uploaded frame if possible
+        evidence_file = None
+        if username in PROCESSED_STREAMS:
+            # We already have a processed frame in buffer, use it as evidence
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            evidence_file = f"evidence_{ts}_tab_switch.jpg"
+            path = os.path.join(EVIDENCE_DIR, evidence_file)
+            with open(path, 'wb') as f:
+                f.write(PROCESSED_STREAMS[username])
+        elif vision_monitor:
+            # Fallback (though we want to avoid server-side camera)
+            evidence_file = vision_monitor.capture_event_frame(msg)
+            
         log_infraction(f"Browser: {msg}", evidence_file)
 
         if switch_count >= TAB_SWITCH_LIMIT:
@@ -513,6 +556,11 @@ def delete_session(session_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/status')
+def get_status():
+    # We need a fallback if session is dead, but let's assume it's ScoreHunt
+    return jsonify({"server": "ScoreHunt AI Proctorer", "status": "online"})
+
 @app.route('/api/sessions/<session_id>')
 @admin_required
 def get_session(session_id):
@@ -524,6 +572,34 @@ def get_session(session_id):
     with open(path) as f:
         return jsonify(json.load(f))
 
+# ── User Management ───────────────────────────────────────────────────────────
+@app.route('/api/users/students', methods=['GET'])
+@admin_required
+def get_students():
+    """List all registered students."""
+    users = load_users()
+    students = [
+        {"username": uname, "role": data.get("role")}
+        for uname, data in users.items() if data.get("role") == "student"
+    ]
+    return jsonify(students)
+
+@app.route('/api/users/<username>', methods=['DELETE'])
+@admin_required
+def delete_user(username):
+    """Delete a user account."""
+    if username == session.get('username'):
+        return jsonify({"error": "Cannot delete yourself"}), 400
+        
+    users = load_users()
+    if username not in users:
+        return jsonify({"error": "User not found"}), 404
+        
+    del users[username]
+    save_users(users)
+    print(f"[Admin] User deleted: {username}")
+    return jsonify({"status": "deleted"})
+
 if __name__ == "__main__":
-    print("Starting AI Proctor Server...")
+    print("Starting ScoreHunt AI Proctor Server...")
     app.run(debug=True, host='0.0.0.0', threaded=True, port=5000, use_reloader=False)

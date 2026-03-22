@@ -3,75 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Proctor – Environment Check</title>
+    <title>ScoreHunt | Environment Check</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='fluent.css') }}">
     <style>
-    .check-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:2rem; }
-    .check-card {
-        max-width: 620px; width:100%;
-        background: rgba(17,24,39,0.75);
-        backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 28px; padding: 3rem 2.5rem;
-        box-shadow: 0 30px 80px rgba(0,0,0,0.55);
-        animation: fadeUp 0.5s ease;
-    }
-    .check-card h1 { font-size:1.75rem; font-weight:800; letter-spacing:-0.04em; margin-bottom:.5rem; }
-    .check-subtitle { color:#94a3b8; font-size:.9rem; line-height:1.6; margin-bottom:2rem; }
-
-    .check-list { display:flex; flex-direction:column; gap:.85rem; margin-bottom:2.5rem; }
-    .check-row {
-        display:grid; grid-template-columns: 2.5rem 1fr auto;
-        align-items:center; gap:1rem;
-        background:rgba(255,255,255,0.03);
-        border:1px solid rgba(255,255,255,0.07);
-        border-radius:16px; padding:1rem 1.25rem;
-        transition: border-color 0.3s;
-    }
-    .check-row.pass  { border-color:rgba(16,185,129,0.3); background:rgba(16,185,129,0.05); }
-    .check-row.fail  { border-color:rgba(244,63,94,0.3);  background:rgba(244,63,94,0.05);  }
-    .check-row.running { border-color:rgba(245,158,11,0.3); background:rgba(245,158,11,0.05); }
-
-    .check-icon { font-size:1.5rem; }
-    .check-info strong { display:block; font-size:.9rem; font-weight:600; margin-bottom:.15rem; }
-    .check-info span   { font-size:.78rem; color:#94a3b8; }
-    .check-status {
-        font-size:.78rem; font-weight:700; letter-spacing:.04em;
-        text-transform:uppercase; padding:.3rem .75rem; border-radius:40px;
-        color:#94a3b8; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08);
-        white-space:nowrap;
-    }
-    .check-status.pass  { color:#10b981; background:rgba(16,185,129,0.1); border-color:rgba(16,185,129,0.2); }
-    .check-status.fail  { color:#f43f5e; background:rgba(244,63,94,0.1);  border-color:rgba(244,63,94,0.2);  }
-    .check-status.running { color:#f59e0b; background:rgba(245,158,11,0.1); border-color:rgba(245,158,11,0.2); animation:flash 1s infinite alternate; }
-
-    /* Baseline progress */
-    .baseline-wrap { grid-column:1/-1; margin-top:.5rem; }
-    .baseline-bar-bg { background:rgba(255,255,255,0.07); border-radius:4px; height:6px; overflow:hidden; }
-    .baseline-bar    { background:linear-gradient(90deg,#6366f1,#3b82f6); height:100%; width:0%; transition:width .5s ease; border-radius:4px; }
-    .baseline-label  { font-size:.72rem; color:#64748b; margin-top:.4rem; }
-
-    .proceed-btn {
-        width:100%;
-        background: linear-gradient(135deg,#6366f1 0%,#3b82f6 100%);
-        color:#fff; border:none; padding:1.1rem; border-radius:16px;
-        font-size:1rem; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif;
-        box-shadow: 0 8px 28px rgba(99,102,241,0.3);
-        transition: all .25s ease;
-    }
-    .proceed-btn:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 12px 36px rgba(99,102,241,0.4); }
-    .proceed-btn:disabled { opacity:.35; cursor:not-allowed; transform:none; }
-
-    .spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(245,158,11,0.3); border-top-color:#f59e0b; border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; margin-right:4px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+        body { background-color: var(--ms-off-white); display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .check-card { 
+            width: 100%; max-width: 600px; padding: 2.75rem; 
+            background: var(--ms-white); border: 1px solid var(--ms-grey-border); 
+            box-shadow: 0 2px 4px rgba(0,0,0,.14);
+        }
+        .ms-logo-small { margin-bottom: 1.25rem; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 1.1rem; }
+        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #1b1b1b; }
+        .check-subtitle { color: #64748b; font-size: 0.9rem; margin-bottom: 2rem; }
+        .check-row { padding: 1rem; border-bottom: 1px solid var(--ms-off-white); display: flex; align-items: center; gap: 1rem; }
+        .check-icon { font-size: 1.25rem; }
+        .check-info { flex: 1; }
+        .check-status { font-weight: 700; font-size: 0.8rem; }
     </style>
 </head>
 <body>
-<div class="check-screen">
     <div class="check-card">
-        <h1>⚙️ Environment Check</h1>
-        <p class="check-subtitle">Verifying all requirements before the exam begins. All checks are <strong style="color:#f8fafc">mandatory</strong>.</p>
+        <div class="ms-logo-small">
+            <div class="ms-symbol-tiny" style="background: var(--ms-blue); width: 16px; height: 16px; border-radius: 2px; color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800;">SH</div>
+            <span>ScoreHunt</span>
+        </div>
+        <h1>Environment Check</h1>
+        <p class="check-subtitle">Verifying requirements before the session begins.</p>
 
         <div class="check-list">
             <!-- Internet -->

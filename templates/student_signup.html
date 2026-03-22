@@ -4,172 +4,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Registration – AI Proctor</title>
+    <title>ScoreHunt | Student Registration</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='fluent.css') }}">
     <style>
-        body {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            background: radial-gradient(circle at top right, #0f172a, #020617);
-            margin: 0;
-            font-family: 'Inter', sans-serif;
-        }
+        body { background-color: var(--ms-off-white); display: flex; flex-direction: column; min-height: 100vh; }
+        
+        /* Main Layout */
+        .login-split { display: flex; flex: 1; min-height: calc(100vh - 65px); width: 100%; }
+        
+        /* Left Column */
+        .login-form-container { flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+        .login-card { width: 100%; max-width: 440px; padding: 3rem; background: var(--ms-white); border: 1px solid var(--ms-grey-border); border-radius: var(--ms-radius); box-shadow: 0 8px 24px rgba(0,0,0,0.06); display: flex; flex-direction: column; gap: 1.5rem; }
 
-        .signup-card {
-            width: 100%;
-            max-width: 400px;
-            background: rgba(15, 23, 42, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            padding: 2.5rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            animation: fadeIn 0.6s ease-out;
-        }
+        /* Right Column */
+        .login-graphic-container { flex: 1; display: none; background: var(--ms-blue); position: relative; overflow: hidden; align-items: center; justify-content: center; }
+        @media (min-width: 900px) { .login-graphic-container { display: flex; } }
+        .login-graphic { width: 100%; height: 100%; object-fit: cover; opacity: 0.95; }
+        .graphic-overlay-text { position: absolute; bottom: 3rem; left: 3rem; right: 3rem; color: white; text-shadow: 0 2px 10px rgba(0,0,0,0.3); text-align: left; }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
+        /* Form */
+        .ms-logo-small { margin-bottom: 0.5rem; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 1.1rem; }
+        h2 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #1b1b1b; }
+        
+        .form-group { display: flex; flex-direction: column; gap: 0.5rem; text-align: left; }
+        .form-label { font-size: 0.85rem; font-weight: 600; color: var(--ms-grey-text); }
+        .input-icon-wrapper { position: relative; display: flex; align-items: center; }
+        .input-icon-wrapper input { padding-left: 2.5rem; }
+        .input-icon { position: absolute; left: 0.75rem; color: var(--ms-grey-secondary); font-size: 1.1rem; }
 
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .signup-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .logo-icon {
-            display: inline-block;
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, #10b981, #3b82f6);
-            border-radius: 12px;
-            margin-bottom: 1rem;
-            position: relative;
-        }
-
-        .logo-icon::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 12px;
-            height: 12px;
-            background: white;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
-        }
-
-        h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin: 0;
-            color: #f8fafc;
-        }
-
-        p {
-            color: #94a3b8;
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        label {
-            display: block;
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.5rem;
-        }
-
-        input {
-            width: 100%;
-            background: rgba(2, 6, 23, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 0.75rem 1rem;
-            color: white;
-            font-size: 1rem;
-            transition: all 0.2s;
-            outline: none;
-            box-sizing: border-box;
-        }
-
-        input:focus {
-            border-color: #10b981;
-            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
-        }
-
-        .btn-signup {
-            width: 100%;
-            background: linear-gradient(to right, #10b981, #3b82f6);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 0.875rem;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
-        }
-
-        .btn-signup:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 20px 25px -5px rgba(16, 185, 129, 0.4);
-        }
-
-        .error-msg {
-            background: rgba(239, 68, 68, 0.1);
-            border-left: 4px solid #ef4444;
-            color: #f87171;
-            padding: 0.75rem;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .footer-links {
-            text-align: center;
-            margin-top: 1.5rem;
-            font-size: 0.875rem;
-            color: #64748b;
-        }
-
-        .footer-links a {
-            color: #10b981;
-            text-decoration: none;
-            font-weight: 500;
-        }
-
-        .footer-links a:hover {
-            text-decoration: underline;
-        }
+        .alert { padding: 1rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; }
+        .alert-error { background: #fee2e2; color: #b91c1c; border-left: 4px solid #b91c1c; }
     </style>
 </head>
 
 <body>
-    <div class="signup-card">
-        <div class="signup-header">
-            <div class="logo-icon"></div>
-            <h1>Student Registration</h1>
-            <p>Create your student account</p>
+    <header class="ms-header">
+        <div class="container navbar">
+            <a href="/" class="ms-logo-box">
+                <div class="ms-symbol" style="background: var(--ms-blue); width: 20px; height: 20px; border-radius: 4px; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800;">SH</div>
+                <span>ScoreHunt AI Proctorer</span>
+            </a>
+            <div class="nav-links">
+                <a href="/">Home</a>
+            </div>
         </div>
+    </header>
+
+    <main class="login-split">
+        <div class="login-form-container">
+            <div class="login-card">
+        <div class="ms-logo-small">
+            <div class="ms-symbol-tiny" style="background: var(--ms-blue); width: 16px; height: 16px; border-radius: 2px; color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800;">SH</div>
+            <span>ScoreHunt</span>
+        </div>
+        <h2>Create Account</h2>
+        <p style="margin-bottom: 1.5rem; font-size: 0.95rem;">Join ScoreHunt AI Proctorer</p>
 
         {% if error %}
         <div class="error-msg">{{ error }}</div>
@@ -177,22 +67,40 @@
 
         <form method="POST">
             <div class="form-group">
-                <label for="username">Set Username</label>
-                <input type="text" id="username" name="username" placeholder="e.g. john_doe" required
-                    autocomplete="username">
+                <label for="username" class="form-label">Desired Username</label>
+                <div class="input-icon-wrapper">
+                    <i class="ms-Icon ms-Icon--Contact input-icon"></i>
+                    <input type="text" name="username" id="username" class="ms-input" placeholder="Create your username" required autofocus>
+                </div>
             </div>
+            
             <div class="form-group">
-                <label for="password">Set Password</label>
-                <input type="password" id="password" name="password" placeholder="••••••••" required
-                    autocomplete="new-password">
+                <label for="password" class="form-label">Create Password</label>
+                <div class="input-icon-wrapper">
+                    <i class="ms-Icon ms-Icon--Lock input-icon"></i>
+                    <input type="password" name="password" id="password" class="ms-input" placeholder="Secure password" required>
+                </div>
             </div>
-            <button type="submit" class="btn-signup">Create Student Account</button>
+            
+            <div style="margin-top: 1.5rem;">
+                <button type="submit" class="ms-btn ms-btn-primary" style="width: 100%;" onclick="this.innerHTML='Creating Account...';">Create Student Account</button>
+            </div>
         </form>
 
-        <div class="footer-links">
-            Already have an account? <a href="/student/login">Log in here</a>
+        <div style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem;">
+            Already have an account? <a href="/login" style="color: var(--ms-blue); font-weight: 600;">Log in securely</a>
         </div>
-    </div>
+            </div>
+        </div>
+        
+        <div class="login-graphic-container">
+            <img class="login-graphic" src="/static/scorehunt_login_illustration.png" alt="Secure Artificial Intelligence Security Shield">
+            <div class="graphic-overlay-text">
+                <h2 style="font-size: 2rem; margin-bottom: 0.5rem; font-weight: 700;">Start Your Journey.</h2>
+                <p style="font-size: 1.1rem; opacity: 0.9; max-width: 80%;">Create your student profile and take your assessments in a secure, AI-powered environment.</p>
+            </div>
+        </div>
+    </main>
 </body>
 
 </html>

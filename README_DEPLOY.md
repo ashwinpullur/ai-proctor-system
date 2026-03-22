@@ -1,4 +1,4 @@
-# Deployment Guide - AI Proctor System
+# Deployment Guide - ScoreHunt AI Proctorer
 
 This guide covers how to share your project and deploy it for demos or production.
 
