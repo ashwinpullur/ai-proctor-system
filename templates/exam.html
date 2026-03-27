@@ -166,6 +166,54 @@
     }
     .tab-switch-badge.danger { background:rgba(244,63,94,0.1); border-color:rgba(244,63,94,0.3); color:#f43f5e; }
 
+    /* ── Theory answer textarea ────────────────────────────────────────────── */
+    .theory-textarea {
+        width:100%; min-height:180px; border:1px solid var(--ms-grey-border);
+        border-radius: var(--ms-radius); padding:1.25rem; resize:vertical;
+        font-family:'Inter',sans-serif; font-size:1rem; color:#000; line-height:1.7;
+        outline:none; transition:border-color .2s; box-sizing:border-box;
+        background: var(--ms-off-white);
+    }
+    .theory-textarea:focus { border-color: var(--ms-blue); box-shadow:0 0 0 3px rgba(0,120,212,0.08); }
+
+    /* ── Cheat Warning Modal ───────────────────────────────────────────────── */
+    #cheat-warn-modal {
+        position:fixed; inset:0; z-index:99999;
+        background:rgba(0,0,0,0.88);
+        display:none; align-items:center; justify-content:center;
+        font-family:'Inter',sans-serif;
+        animation: fadeInBg .3s ease;
+    }
+    #cheat-warn-modal.show { display:flex; }
+    @keyframes fadeInBg { from { opacity:0; } to { opacity:1; } }
+
+    .cwm-box {
+        background:#fff; border-radius:20px; padding:3rem 3.5rem;
+        max-width:520px; width:94%; text-align:center;
+        box-shadow:0 30px 80px rgba(0,0,0,.5);
+        animation: slideUpModal .35s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes slideUpModal { from { transform:translateY(60px) scale(.92); opacity:0; } to { transform:none; opacity:1; } }
+
+    .cwm-icon   { font-size:4rem; margin-bottom:1rem; display:block; }
+    .cwm-title  { font-size:1.8rem; font-weight:800; color:#f43f5e; margin-bottom:.4rem; }
+    .cwm-sub    { font-size:1rem; color:#64748b; margin-bottom:1.5rem; line-height:1.5; }
+    .cwm-pills  { display:flex; justify-content:center; gap:.6rem; flex-wrap:wrap; margin-bottom:2rem; }
+    .cwm-pill   { padding:.35rem 1rem; border-radius:40px; font-size:.8rem; font-weight:700;
+                  border:2px solid #e2e8f0; color:#94a3b8; }
+    .cwm-pill.active { background:#f43f5e; border-color:#f43f5e; color:#fff; }
+    .cwm-pill.done   { background:#1e293b; border-color:#1e293b; color:#fff; }
+    .cwm-reason { background:#fff5f5; border:1px solid #fecaca; border-radius:10px;
+                  padding:.75rem 1rem; font-size:.85rem; color:#b91c1c; margin-bottom:2rem; }
+    .cwm-countdown { font-size:3rem; font-weight:900; color:#f43f5e; margin-bottom:.4rem; line-height:1; }
+    .cwm-cd-label  { font-size:.8rem; color:#94a3b8; margin-bottom:1.5rem; }
+    .cwm-btn {
+        background:#f43f5e; color:#fff; border:none; padding:.9rem 2.5rem;
+        border-radius:12px; font-size:1rem; font-weight:700; cursor:pointer;
+        font-family:'Inter',sans-serif; transition:background .2s;
+    }
+    .cwm-btn:hover { background:#e11d48; }
+
     @media(max-width:900px) { .exam-layout { grid-template-columns:1fr; } .exam-sidebar { border-left:none; border-top:1px solid rgba(255,255,255,.06); } }
     </style>
 </head>
@@ -230,13 +278,30 @@
 <!-- ══════════════════════════════════════════════════════════════════════════
      TAB-SWITCH WARNING TOAST
 ═══════════════════════════════════════════════════════════════════════════ -->
-<!-- ══════════════════════════════════════════════════════════════════════════
-     TAB-SWITCH WARNING TOAST
-═══════════════════════════════════════════════════════════════════════════ -->
 <div id="tab-warn-toast">
     <div class="toast-title" id="toast-title">⚠️ Tab Switch Detected</div>
     <div class="toast-sub"  id="toast-sub">Warning 1 of 3 — Return to exam immediately</div>
     <div class="toast-bar"><div class="toast-fill" id="toast-fill" style="width:100%"></div></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     CHEAT WARNING MODAL — full-screen blocking, 3 strikes then terminate
+═══════════════════════════════════════════════════════════════════════════ -->
+<div id="cheat-warn-modal">
+    <div class="cwm-box">
+        <span class="cwm-icon" id="cwm-icon">⚠️</span>
+        <div class="cwm-title" id="cwm-title">Suspicious Activity Detected</div>
+        <div class="cwm-sub"  id="cwm-sub">You have been flagged for a proctoring violation.</div>
+        <div class="cwm-reason" id="cwm-reason">Vision anomaly detected.</div>
+        <div class="cwm-pills">
+            <div class="cwm-pill" id="cwm-p1">Warning 1</div>
+            <div class="cwm-pill" id="cwm-p2">Warning 2</div>
+            <div class="cwm-pill" id="cwm-p3">Warning 3</div>
+        </div>
+        <div class="cwm-countdown" id="cwm-countdown">5</div>
+        <div class="cwm-cd-label">This warning closes automatically</div>
+        <button class="cwm-btn" id="cwm-btn" onclick="closeCWM()">I Understand — Return to Exam</button>
+    </div>
 </div>
 
 <!-- Hidden video element to capture the local camera stream for the canvas to read and upload -->
@@ -460,57 +525,47 @@ function startExamAfterPermissions() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// QUESTIONS
+// QUESTIONS — loaded dynamically from the database via /api/questions
 // ════════════════════════════════════════════════════════════════════════════
-const QUESTIONS = [
-    { type:"mcq", q:"What does AI stand for?",
-      opts:["Artificial Intelligence","Automated Interface","Analytical Insight","Applied Integration"], ans:0 },
-    { type:"mcq", q:"Which of the following is a supervised learning algorithm?",
-      opts:["K-Means","PCA","Linear Regression","DBSCAN"], ans:2 },
-    { type:"mcq", q:"What is the purpose of a neural network's activation function?",
-      opts:["Initialize weights","Regularize the model","Introduce non-linearity","Reduce dimensionality"], ans:2 },
-    { type:"mcq", q:"Which metric measures the proportion of positive cases correctly identified?",
-      opts:["Precision","Recall","F1-Score","Accuracy"], ans:1 },
-    { type:"mcq", q:"What does CNN stand for in deep learning?",
-      opts:["Central Neural Network","Connected Neural Network","Convolutional Neural Network","Computed Neural Network"], ans:2 },
-    { type:"mcq", q:"Which Python library is commonly used for machine learning?",
-      opts:["NumPy","Flask","scikit-learn","requests"], ans:2 },
-    { type:"mcq", q:"What is overfitting?",
-      opts:["Model too simple for data","Model performs well on all data","Model fits training data too closely","Model ignores all features"], ans:2 },
-    { type:"mcq", q:"What is the role of a validation set?",
-      opts:["Train the model","Test final performance","Tune hyperparameters","Normalize data"], ans:2 },
-    { type:"mcq", q:"Which optimization algorithm is widely used in training neural networks?",
-      opts:["Bubble Sort","Gradient Descent","Binary Search","Dijkstra's"], ans:1 },
-    { type:"mcq", q:"What is a confusion matrix used for?",
-      opts:["Visualizing neural network layers","Evaluating classification models","Optimizing learning rate","Preprocessing data"], ans:1 },
-    {
-        type: "code",
-        q:    "Write a Python function that returns the factorial of a given number n using recursion.",
-        prompt: `# Example usage:\n# factorial(5) → 120\n# factorial(0) → 1\n\ndef factorial(n):\n    # Your code here\n    pass`,
-        placeholder: "Write your Python function here…",
-    },
-    {
-        type: "code",
-        q:    "Write a Python function that checks if a given string is a palindrome (ignoring case and spaces).",
-        prompt: `# Example usage:\n# is_palindrome("racecar")  → True\n# is_palindrome("A man a plan a canal Panama")  → True\n# is_palindrome("hello")  → False\n\ndef is_palindrome(s):\n    # Your code here\n    pass`,
-        placeholder: "Write your Python function here…",
-    },
-];
+let QUESTIONS = [];  // populated after fetch
 
-const TOTAL = QUESTIONS.length;
+let TOTAL = 0;
 let current = 0;
-let answers = new Array(TOTAL).fill(null);
+let answers = [];
 let seenEvents = new Set();
 let timerInterval, secondsLeft = 60 * 60;
 let examStarted = false;          // gates ALL monitoring until permissions granted
 let statsInterval = null;
 const studentName = "{{ session.get('username', 'Student') }}";
 
-// Build the UI (progress + first question) immediately so layout is ready,
-// but timer, API call, monitoring all wait until startExamAfterPermissions().
 document.getElementById('student-label').textContent = 'Student: ' + studentName;
-buildProgress();
-renderQuestion(0);
+
+// Load questions from server, then build UI
+async function loadQuestions() {
+    try {
+        document.getElementById('q-text').textContent = 'Loading questions…';
+        const resp = await fetch('/api/questions');
+        const raw  = await resp.json();
+        // Normalise field names (DB uses snake_case)
+        QUESTIONS = raw.map(q => ({
+            id:             q.id,
+            type:           q.type,           // 'mcq' | 'code' | 'theory'
+            q:              q.question,
+            opts:           q.options || [],
+            ans:            q.correct_answer,
+            prompt:         q.code_prompt || '',
+            placeholder:    q.placeholder || 'Write your answer here…',
+        }));
+        TOTAL   = QUESTIONS.length;
+        answers = new Array(TOTAL).fill(null);
+        buildProgress();
+        renderQuestion(0);
+    } catch(e) {
+        document.getElementById('q-text').textContent = 'Failed to load questions. Please refresh.';
+        console.error('[Questions] Load error:', e);
+    }
+}
+loadQuestions();
 
 // ── Progress dots ──────────────────────────────────────────────────────────
 function buildProgress() {
@@ -531,6 +586,7 @@ function updateProgress() {
 
 // ── Render question ────────────────────────────────────────────────────────
 function renderQuestion(idx) {
+    if (!QUESTIONS.length) return;
     const q = QUESTIONS[idx];
     const label = document.getElementById('q-label');
     const badge = document.getElementById('q-type-badge');
@@ -555,9 +611,26 @@ function renderQuestion(idx) {
             </div>`;
         const ta = document.getElementById(`code-ans-${idx}`);
         attachKeystrokeDynamics(ta);
+    } else if (q.type === 'theory') {
+        badge.textContent = 'Theory';
+        badge.className   = 'q-type-badge';
+        badge.style.background  = '#ede9fe';
+        badge.style.borderColor = '#7c3aed';
+        badge.style.color       = '#7c3aed';
+        const saved = answers[idx] || '';
+        body.innerHTML = `
+            <div style="font-size:.85rem;color:#64748b;margin-bottom:.75rem;">Write your detailed answer below:</div>
+            <textarea class="theory-textarea" id="theory-ans-${idx}"
+                placeholder="${escHtml(q.placeholder || 'Type your answer here…')}"
+                oninput="saveTheory(${idx})"
+            >${escHtml(saved)}</textarea>`;
+        const ta = document.getElementById(`theory-ans-${idx}`);
+        if (ta) attachKeystrokeDynamics(ta);
     } else {
+        // MCQ
         badge.textContent = 'MCQ';
         badge.className   = 'q-type-badge';
+        badge.removeAttribute('style');
         body.innerHTML = `<div class="options">${
             q.opts.map((o, i) =>
                 `<div class="option${answers[idx]===i?' selected':''}" onclick="selectOption(${i})">
@@ -580,6 +653,12 @@ function escHtml(s) {
 
 function saveCode(idx) {
     const ta = document.getElementById(`code-ans-${idx}`);
+    if (ta) answers[idx] = ta.value;
+    updateProgress();
+}
+
+function saveTheory(idx) {
+    const ta = document.getElementById(`theory-ans-${idx}`);
     if (ta) answers[idx] = ta.value;
     updateProgress();
 }
@@ -611,7 +690,7 @@ function startTimer() {
 // ── End exam ───────────────────────────────────────────────────────────────
 function endExam() {
     clearInterval(timerInterval);
-    const correct  = answers.filter((a, i) => QUESTIONS[i].type === 'mcq' && a === QUESTIONS[i].ans).length;
+    const correct  = answers.filter((a, i) => QUESTIONS[i] && QUESTIONS[i].type === 'mcq' && a === QUESTIONS[i].ans).length;
     const mcqTotal = QUESTIONS.filter(q => q.type === 'mcq').length;
     sessionStorage.setItem('examAnswers', JSON.stringify(answers));
     sessionStorage.setItem('examScore',   correct);
@@ -620,6 +699,87 @@ function endExam() {
     Object.values(mediaStreams).forEach(s => { if (s) s.getTracks().forEach(t => t.stop()); });
     fetch('/api/control', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'stop'}) })
         .then(() => window.location.href = '/results');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// CHEAT WARNING MODAL — 3-strike system
+// ════════════════════════════════════════════════════════════════════════════
+const CHEAT_WARN_LIMIT = 3;
+let   cheatWarnCount   = 0;  // local counter driven from server warnings
+let   cwmCountdown     = null;
+let   cwmBlocked       = false;   // while modal is open, countdown runs
+
+function showCheatWarning(count, reason) {
+    cheatWarnCount = count;
+    const modal = document.getElementById('cheat-warn-modal');
+    const isFinal = count >= CHEAT_WARN_LIMIT;
+
+    document.getElementById('cwm-icon' ).textContent = isFinal ? '🚫' : '⚠️';
+    document.getElementById('cwm-title').textContent = isFinal
+        ? 'Exam Terminated!'
+        : `Cheat Warning ${count} of ${CHEAT_WARN_LIMIT}`;
+    document.getElementById('cwm-sub'  ).textContent = isFinal
+        ? 'You have exceeded the maximum number of violations. Your exam has been terminated.'
+        : `You have been flagged for a proctoring violation. ${CHEAT_WARN_LIMIT - count} warning(s) remaining before termination.`;
+    document.getElementById('cwm-reason').textContent = reason || 'Proctoring violation detected.';
+
+    // Update pills
+    for (let i = 1; i <= CHEAT_WARN_LIMIT; i++) {
+        const p = document.getElementById(`cwm-p${i}`);
+        if (!p) continue;
+        p.className = 'cwm-pill';
+        if (i < count)  p.classList.add('done');
+        if (i === count) p.classList.add('active');
+    }
+
+    // Countdown button
+    const btn = document.getElementById('cwm-btn');
+    if (isFinal) {
+        btn.textContent = '📊 View Results';
+        btn.onclick = () => { terminateExamForCheating(reason); };
+    } else {
+        btn.textContent = 'I Understand — Return to Exam';
+        btn.onclick = () => { closeCWM(); };
+    }
+
+    modal.classList.add('show');
+    cwmBlocked = true;
+
+    // Countdown timer
+    let secs = isFinal ? 10 : 6;
+    document.getElementById('cwm-countdown').textContent = secs;
+    if (cwmCountdown) clearInterval(cwmCountdown);
+    cwmCountdown = setInterval(() => {
+        secs--;
+        document.getElementById('cwm-countdown').textContent = Math.max(0, secs);
+        if (secs <= 0) {
+            clearInterval(cwmCountdown);
+            if (isFinal) {
+                terminateExamForCheating(reason);
+            } else {
+                closeCWM();
+            }
+        }
+    }, 1000);
+}
+
+function closeCWM() {
+    document.getElementById('cheat-warn-modal').classList.remove('show');
+    cwmBlocked = false;
+    if (cwmCountdown) { clearInterval(cwmCountdown); cwmCountdown = null; }
+}
+
+function terminateExamForCheating(reason) {
+    closeCWM();
+    clearInterval(timerInterval);
+    if (statsInterval) clearInterval(statsInterval);
+    Object.values(mediaStreams).forEach(s => { if (s) s.getTracks().forEach(t => t.stop()); });
+    fetch('/api/control', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({action:'stop'}) })
+    .catch(() => {})
+    .finally(() => {
+        showViolationOverlay(reason || 'Exam terminated due to repeated violations.');
+    });
 }
 
 function showViolationOverlay(msg) {
@@ -861,6 +1021,8 @@ function attachKeystrokeDynamics(el) {
 // ════════════════════════════════════════════════════════════════════════════
 // STATS POLL — starts only after permissions granted, runs every 2 seconds
 // ════════════════════════════════════════════════════════════════════════════
+let lastKnownWarnings = 0;  // track to detect new warnings for cheat modal
+
 function startStatsPolling() {
     statsInterval = setInterval(() => {
         if (!examStarted) return;
@@ -902,8 +1064,27 @@ function startStatsPolling() {
             document.getElementById('system-status').textContent = 'Proctoring Active';
             document.getElementById('system-status').className   = 'status-badge active';
 
-            // Auto-stop triggered by server
-            if (!data.is_active && document.getElementById('violation-overlay').style.display !== 'flex') {
+            // ── NEW Cheat-Warning Modal trigger ──────────────────────────────
+            // Fire when warnings count increases (new violation from server)
+            const newWarn = data.warnings || 0;
+            if (newWarn > lastKnownWarnings && !cwmBlocked) {
+                lastKnownWarnings = newWarn;
+                // Find the latest event message to show as reason
+                const latestEvent = (data.events || []).slice(-1)[0];
+                const reason = latestEvent ? latestEvent.msg : 'Proctoring violation detected.';
+                if (newWarn >= CHEAT_WARN_LIMIT) {
+                    showCheatWarning(CHEAT_WARN_LIMIT, reason);
+                } else {
+                    showCheatWarning(newWarn, reason);
+                }
+            } else if (newWarn > lastKnownWarnings) {
+                lastKnownWarnings = newWarn;  // update counter even if modal is open
+            }
+
+            // Auto-stop triggered by server (outside of cheat modal flow)
+            if (!data.is_active && !cwmBlocked &&
+                document.getElementById('violation-overlay').style.display !== 'flex' &&
+                document.getElementById('cheat-warn-modal').classList.contains('show') === false) {
                 showViolationOverlay('The proctoring system detected a critical violation.');
             }
 

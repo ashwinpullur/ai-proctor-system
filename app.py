@@ -8,6 +8,7 @@ import json
 from datetime import datetime
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
+import db as database
 
 from modules.vision import VisionMonitor
 from modules.audio import AudioMonitor
@@ -15,6 +16,9 @@ from modules.os_monitor import OSMonitor
 
 app = Flask(__name__)
 app.secret_key = "AI_PROCTOR_SECRET_KEY"  # for sessions
+
+# Initialise SQLite DB
+database.init_db()
 
 # ── Global state ──────────────────────────────────────────────────────────────
 cheat_stats = {
@@ -97,21 +101,40 @@ def log_infraction(msg, evidence_file=None):
         stop_exam()
 
 def save_session():
-    """Persist completed exam stats to a timestamped JSON file."""
+    """Persist completed exam stats to a timestamped JSON file AND SQLite DB."""
     ts    = datetime.now().strftime("%Y%m%d_%H%M%S")
     fname = f"session_{ts}.json"
     path  = os.path.join(SESSIONS_DIR, fname)
+    ended = int(time.time())
+    started = cheat_stats.get("started_at", ended)
     data  = {
-        "id":         ts,
-        "filename":   fname,
-        "ended_at":   int(time.time()),
-        "student":    cheat_stats.get("student", "Unknown"),
-        "warnings":   cheat_stats["warnings"],
-        "events":     cheat_stats["events"],
-        "evidence":   cheat_stats["evidence"],
+        "id":          ts,
+        "filename":    fname,
+        "started_at": started,
+        "ended_at":    ended,
+        "student":     cheat_stats.get("student", "Unknown"),
+        "warnings":    cheat_stats["warnings"],
+        "tab_switches": cheat_stats.get("tab_switches", 0),
+        "events":      cheat_stats["events"],
+        "evidence":    cheat_stats["evidence"],
     }
+    # Save JSON (backwards-compatible)
     with open(path, 'w') as f:
         json.dump(data, f, indent=2)
+    # Save to SQLite
+    try:
+        database.save_session(
+            session_id=ts,
+            student=data["student"],
+            ended_at=ended,
+            started_at=started,
+            warnings=data["warnings"],
+            tab_switches=data["tab_switches"],
+            events=data["events"],
+            evidence=data["evidence"],
+        )
+    except Exception as e:
+        print(f"[DB] Session save error: {e}")
     print(f"[Session] Saved -> {fname}")
     return fname
 
@@ -362,6 +385,24 @@ def submit_report():
     return jsonify({"status": "submitted"})
 
 
+# ── Active Students (live streams) ────────────────────────────────────────────
+@app.route('/api/active_students')
+@admin_required
+def active_students():
+    """Return list of students currently streaming (admin only)."""
+    result = []
+    for username, frame in PROCESSED_STREAMS.items():
+        result.append({
+            "username": username,
+            "warnings": cheat_stats.get("warnings", 0)
+               if cheat_stats.get("student") == username else 0,
+            "tab_switches": cheat_stats.get("tab_switches", 0)
+               if cheat_stats.get("student") == username else 0,
+            "is_active": is_exam_active and cheat_stats.get("student") == username,
+        })
+    return jsonify(result)
+
+
 @app.route('/api/control', methods=['POST'])
 def control_exam():
     global is_exam_active, audio_monitor, os_monitor, cheat_stats
@@ -370,7 +411,8 @@ def control_exam():
     if data.get('action') == 'start':
         is_exam_active = True
         cheat_stats = {"warnings": 0, "tab_switches": 0, "events": [], "evidence": [],
-                       "student": data.get('student', 'Unknown')}
+                       "student": data.get('student', 'Unknown'),
+                       "started_at": int(time.time())}
 
         if audio_monitor is None or not audio_monitor.running:
             audio_monitor = AudioMonitor(
@@ -599,6 +641,68 @@ def delete_user(username):
     save_users(users)
     print(f"[Admin] User deleted: {username}")
     return jsonify({"status": "deleted"})
+
+# ── Question Bank API ─────────────────────────────────────────────────────────
+@app.route('/api/questions')
+def get_questions():
+    """Return all questions for the exam (students use this)."""
+    questions = database.list_questions()
+    if not questions:
+        # Fallback: return built-in sample questions so exam stays functional
+        return jsonify([{
+            "id": 1, "type": "mcq",
+            "question": "What does AI stand for?",
+            "options": ["Artificial Intelligence","Automated Interface",
+                        "Analytical Insight","Applied Integration"],
+            "correct_answer": 0,
+            "placeholder": None, "code_prompt": None
+        }])
+    return jsonify(questions)
+
+
+@app.route('/api/admin/questions', methods=['GET'])
+@admin_required
+def admin_list_questions():
+    """Return all questions (admin view, includes correct answers)."""
+    return jsonify(database.list_questions())
+
+
+@app.route('/api/admin/questions', methods=['POST'])
+@admin_required
+def admin_add_question():
+    """Add a new question to the bank."""
+    data = request.json or {}
+    q_type = data.get('type', 'mcq')
+    question = data.get('question', '').strip()
+    if not question:
+        return jsonify({"error": "Question text required"}), 400
+
+    options        = data.get('options')         # list of strings for MCQ
+    correct_answer = data.get('correct_answer')  # int index for MCQ
+    code_prompt    = data.get('code_prompt')     # for code type
+    placeholder    = data.get('placeholder')
+
+    new_id = database.add_question(
+        q_type=q_type,
+        question=question,
+        options=options,
+        correct_answer=correct_answer,
+        code_prompt=code_prompt,
+        placeholder=placeholder,
+    )
+    print(f"[Admin] Question added (id={new_id}): {q_type} — {question[:40]}")
+    return jsonify({"status": "created", "id": new_id}), 201
+
+
+@app.route('/api/admin/questions/<int:q_id>', methods=['DELETE'])
+@admin_required
+def admin_delete_question(q_id):
+    """Delete a question by id."""
+    deleted = database.delete_question(q_id)
+    if deleted:
+        return jsonify({"status": "deleted"})
+    return jsonify({"error": "Not found"}), 404
+
 
 if __name__ == "__main__":
     print("Starting ScoreHunt AI Proctor Server...")

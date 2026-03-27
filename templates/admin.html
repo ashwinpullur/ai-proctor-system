@@ -79,6 +79,8 @@
         <nav class="admin-sidebar-rail">
             <a href="#" class="nav-item active" onclick="switchSection('dashboard', this)">🏠 Dashboard</a>
             <a href="#" class="nav-item" onclick="switchSection('monitoring', this); loadEvidence();">📊 Exam Monitoring</a>
+            <a href="#" class="nav-item" onclick="switchSection('liveproctoring', this); startLivePoll();">🎥 Live Proctoring</a>
+            <a href="#" class="nav-item" onclick="switchSection('questions', this); loadAdminQuestions();">📝 Question Bank</a>
             <a href="#" class="nav-item" onclick="switchSection('schedules', this)">📅 Manage Schedules</a>
             <a href="#" class="nav-item" onclick="switchSection('students', this); loadStudents();">👥 Students</a>
             <a href="#" class="nav-item" onclick="switchSection('settings', this)">⚙️ Settings</a>
@@ -237,6 +239,164 @@
                         <button class="ms-btn ms-btn-primary" style="align-self: flex-start; margin-top: 1rem;">Save Configuration</button>
                         <p style="font-size: 0.8rem; color: var(--ms-grey-secondary); margin-top: 0.5rem;">Note: Changes apply to future exam sessions.</p>
                     </div>
+                </div>
+            </section>
+
+            <!-- ═══════════════════════════════════════════════════════════════
+                 LIVE PROCTORING SECTION — full student-feed grid
+            ═══════════════════════════════════════════════════════════════ -->
+            <section id="sec-liveproctoring" class="admin-section" style="display:none;">
+                <div class="section-header">
+                    <h2>🎥 Live Proctoring</h2>
+                    <div style="display:flex;gap:.75rem;align-items:center;">
+                        <span id="live-student-count" style="font-size:.85rem;color:var(--ms-grey-secondary);">0 students online</span>
+                        <button class="ms-btn ms-btn-secondary" onclick="refreshLiveStudents()">↻ Refresh</button>
+                    </div>
+                </div>
+
+                <!-- Student grid -->
+                <div id="live-student-grid" style="
+                    display:grid;
+                    grid-template-columns:repeat(auto-fill, minmax(300px,1fr));
+                    gap:1.5rem;
+                ">
+                    <div id="live-no-students" style="
+                        grid-column:1/-1; text-align:center; padding:4rem 2rem;
+                        color:var(--ms-grey-secondary); font-size:.95rem;
+                    ">
+                        <div style="font-size:3rem;margin-bottom:1rem;">📷</div>
+                        <div>No students are currently taking an exam.</div>
+                        <div style="font-size:.8rem;margin-top:.5rem;">This panel auto-refreshes every 3 seconds.</div>
+                    </div>
+                </div>
+
+                <!-- Fullscreen view modal -->
+                <div id="fs-modal" style="
+                    position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:10000;
+                    display:none;flex-direction:column;align-items:center;justify-content:center;
+                ">
+                    <button onclick="closeFSModal()" style="
+                        position:absolute;top:1.5rem;right:1.5rem;
+                        background:#fff;border:none;border-radius:50%;width:36px;height:36px;
+                        font-size:1.2rem;cursor:pointer;font-weight:700;
+                    ">✕</button>
+                    <div id="fs-label" style="color:#fff;font-size:1.2rem;font-weight:700;margin-bottom:1rem;"></div>
+                    <img id="fs-feed" src="" alt="Live Feed" style="max-width:90vw;max-height:80vh;border-radius:12px;">
+                </div>
+            </section>
+
+            <!-- ═══════════════════════════════════════════════════════════════
+                 QUESTION BANK SECTION
+            ═══════════════════════════════════════════════════════════════ -->
+            <section id="sec-questions" class="admin-section" style="display:none;">
+                <div class="section-header">
+                    <h2>📝 Question Bank</h2>
+                    <button class="ms-btn ms-btn-secondary" onclick="loadAdminQuestions()">↻ Refresh</button>
+                </div>
+
+                <!-- Add Question Form -->
+                <div class="ms-card" style="margin-bottom:2rem;">
+                    <h3 style="margin-bottom:1.25rem;font-size:1rem;">Add New Question</h3>
+
+                    <!-- Type selector -->
+                    <div style="margin-bottom:1rem;">
+                        <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.4rem;">Question Type</label>
+                        <select id="q-type-sel" class="ms-input" onchange="onQTypeChange()" style="max-width:220px;">
+                            <option value="mcq">📋 MCQ (Multiple Choice)</option>
+                            <option value="code">💻 Coding Question</option>
+                            <option value="theory">📖 Theory / Essay</option>
+                        </select>
+                    </div>
+
+                    <!-- Question text -->
+                    <div style="margin-bottom:1rem;">
+                        <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.4rem;">Question Text *</label>
+                        <textarea id="q-question" class="ms-input" rows="3"
+                            style="width:100%;resize:vertical;font-family:inherit;"
+                            placeholder="Enter the question..."></textarea>
+                    </div>
+
+                    <!-- MCQ-specific fields -->
+                    <div id="mcq-fields">
+                        <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.6rem;">Answer Options</label>
+                        <div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem;">
+                            <div style="display:flex;align-items:center;gap:.75rem;">
+                                <span style="width:28px;height:28px;background:var(--ms-blue);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0;">A</span>
+                                <input type="text" id="opt-a" class="ms-input" placeholder="Option A" style="flex:1;">
+                            </div>
+                            <div style="display:flex;align-items:center;gap:.75rem;">
+                                <span style="width:28px;height:28px;background:var(--ms-blue);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0;">B</span>
+                                <input type="text" id="opt-b" class="ms-input" placeholder="Option B" style="flex:1;">
+                            </div>
+                            <div style="display:flex;align-items:center;gap:.75rem;">
+                                <span style="width:28px;height:28px;background:var(--ms-blue);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0;">C</span>
+                                <input type="text" id="opt-c" class="ms-input" placeholder="Option C" style="flex:1;">
+                            </div>
+                            <div style="display:flex;align-items:center;gap:.75rem;">
+                                <span style="width:28px;height:28px;background:var(--ms-blue);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0;">D</span>
+                                <input type="text" id="opt-d" class="ms-input" placeholder="Option D" style="flex:1;">
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:1rem;">
+                            <label style="font-size:.85rem;font-weight:600;">Correct Answer:</label>
+                            <select id="q-correct" class="ms-input" style="max-width:140px;">
+                                <option value="0">A</option>
+                                <option value="1">B</option>
+                                <option value="2">C</option>
+                                <option value="3">D</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Code-specific fields -->
+                    <div id="code-fields" style="display:none;">
+                        <div style="margin-bottom:1rem;">
+                            <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.4rem;">Starter Code / Prompt</label>
+                            <textarea id="q-code-prompt" class="ms-input" rows="5"
+                                style="width:100%;resize:vertical;font-family:'JetBrains Mono',monospace;font-size:.85rem;"
+                                placeholder="# Example:\ndef my_function(n):\n    pass"></textarea>
+                        </div>
+                        <div>
+                            <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.4rem;">Placeholder Text</label>
+                            <input type="text" id="q-placeholder" class="ms-input" style="width:100%;"
+                                placeholder="Write your Python function here…" value="Write your code here…">
+                        </div>
+                    </div>
+
+                    <!-- Theory-specific fields -->
+                    <div id="theory-fields" style="display:none;">
+                        <div>
+                            <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.4rem;">Placeholder Text</label>
+                            <input type="text" id="q-theory-placeholder" class="ms-input" style="width:100%;"
+                                placeholder="Type your answer here…" value="Type your detailed answer here…">
+                        </div>
+                    </div>
+
+                    <div style="margin-top:1.5rem;display:flex;gap:1rem;align-items:center;">
+                        <button class="ms-btn ms-btn-primary" onclick="submitQuestion()">➕ Add Question</button>
+                        <span id="q-form-msg" style="font-size:.85rem;"></span>
+                    </div>
+                </div>
+
+                <!-- Questions Table -->
+                <div class="ms-card">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                        <h3 style="font-size:1rem;">All Questions <span id="q-count-badge" style="background:var(--ms-grey-light);border-radius:20px;padding:.1rem .6rem;font-size:.8rem;font-weight:400;">0</span></h3>
+                    </div>
+                    <table class="ms-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Type</th>
+                                <th>Question</th>
+                                <th>Options / Code</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="questions-tbody">
+                            <tr><td colspan="5" style="text-align:center;color:var(--ms-grey-secondary);">Loading questions…</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </section>
         </main>
@@ -501,6 +661,232 @@
         }
         setInterval(pollActiveStudents, 3000);
         pollActiveStudents();
+
+        // ════════════════════════════════════════════════════════════════════
+        // LIVE PROCTORING GRID — full student feed cards
+        // ════════════════════════════════════════════════════════════════════
+        let livePollTimer = null;
+
+        function startLivePoll() {
+            refreshLiveStudents();
+            if (!livePollTimer) {
+                livePollTimer = setInterval(refreshLiveStudents, 3000);
+            }
+        }
+
+        async function refreshLiveStudents() {
+            try {
+                const resp = await fetch('/api/active_students');
+                const students = await resp.json();
+                renderLiveGrid(students);
+            } catch(e) {
+                console.error('Live poll error:', e);
+            }
+        }
+
+        function renderLiveGrid(students) {
+            const grid    = document.getElementById('live-student-grid');
+            const noEl    = document.getElementById('live-no-students');
+            const countEl = document.getElementById('live-student-count');
+            if (!grid) return;
+            countEl.textContent = students.length + ' student' + (students.length !== 1 ? 's' : '') + ' online';
+
+            if (!students.length) {
+                noEl.style.display = 'block';
+                Array.from(grid.children).forEach(c => { if (c.id !== 'live-no-students') c.remove(); });
+                return;
+            }
+            noEl.style.display = 'none';
+
+            const activeSet = new Set(students.map(s => s.username));
+
+            // Remove cards for students who left
+            grid.querySelectorAll('.live-card').forEach(card => {
+                if (!activeSet.has(card.dataset.username)) card.remove();
+            });
+
+            // Add/update cards for active students
+            students.forEach(s => {
+                let card = grid.querySelector(`.live-card[data-username="${s.username}"]`);
+                if (!card) {
+                    card = document.createElement('div');
+                    card.className = 'live-card';
+                    card.dataset.username = s.username;
+                    card.style.cssText = `
+                        background:var(--ms-white); border:1px solid var(--ms-grey-border);
+                        border-radius:var(--ms-radius); overflow:hidden; box-shadow:var(--ms-shadow);
+                    `;
+                    card.innerHTML = `
+                        <div style="background:#000;position:relative;aspect-ratio:4/3;">
+                            <img src="/admin/stream/${s.username}" alt="${s.username}" loading="lazy"
+                                style="width:100%;height:100%;object-fit:cover;display:block;"
+                                onerror="this.style.opacity='.3'">
+                            <div style="position:absolute;top:.6rem;right:.6rem;
+                                background:rgba(220,38,38,.85);color:#fff;padding:.2rem .6rem;
+                                border-radius:40px;font-size:.7rem;font-weight:700;
+                                display:flex;align-items:center;gap:.3rem;">
+                                <span style="width:6px;height:6px;background:#fff;border-radius:50%;
+                                    animation:pulse 1s infinite;"></span> LIVE
+                            </div>
+                        </div>
+                        <div style="padding:.9rem 1rem;display:flex;justify-content:space-between;align-items:center;">
+                            <div>
+                                <div style="font-weight:700;font-size:.9rem;">${s.username}</div>
+                                <div style="font-size:.75rem;color:var(--ms-grey-secondary);margin-top:.15rem;">
+                                    ${s.is_active ? '● Active Exam' : '○ Connected'}
+                                </div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:.5rem;">
+                                <div class="lc-warn" style="
+                                    background:${s.warnings>0?'rgba(244,63,94,.1)':'rgba(16,185,129,.1)'};
+                                    border:1px solid ${s.warnings>0?'rgba(244,63,94,.3)':'rgba(16,185,129,.3)'};
+                                    color:${s.warnings>0?'#f43f5e':'#10b981'};
+                                    border-radius:8px;padding:.25rem .6rem;font-size:.75rem;font-weight:700;
+                                ">${s.warnings} ⚠</div>
+                                <button onclick="openFS('${s.username}')" style="
+                                    background:var(--ms-blue);color:#fff;border:none;
+                                    padding:.3rem .7rem;border-radius:6px;font-size:.75rem;
+                                    cursor:pointer;font-weight:600;">⛶ Full</button>
+                            </div>
+                        </div>`;
+                    grid.appendChild(card);
+                } else {
+                    // Update warning badge
+                    const warnEl = card.querySelector('.lc-warn');
+                    if (warnEl) {
+                        warnEl.textContent = s.warnings + ' ⚠';
+                        warnEl.style.background  = s.warnings>0 ? 'rgba(244,63,94,.1)' : 'rgba(16,185,129,.1)';
+                        warnEl.style.borderColor = s.warnings>0 ? 'rgba(244,63,94,.3)' : 'rgba(16,185,129,.3)';
+                        warnEl.style.color       = s.warnings>0 ? '#f43f5e' : '#10b981';
+                    }
+                }
+            });
+        }
+
+        function openFS(username) {
+            const modal = document.getElementById('fs-modal');
+            document.getElementById('fs-label').textContent = '🎥 ' + username + ' — Live Feed';
+            document.getElementById('fs-feed').src = '/admin/stream/' + username + '?t=' + Date.now();
+            modal.style.display = 'flex';
+        }
+        function closeFSModal() {
+            document.getElementById('fs-modal').style.display = 'none';
+            document.getElementById('fs-feed').src = '';
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // QUESTION BANK MANAGEMENT
+        // ════════════════════════════════════════════════════════════════════
+        function onQTypeChange() {
+            const type = document.getElementById('q-type-sel').value;
+            document.getElementById('mcq-fields')   .style.display = type === 'mcq'    ? 'block' : 'none';
+            document.getElementById('code-fields')  .style.display = type === 'code'   ? 'block' : 'none';
+            document.getElementById('theory-fields').style.display = type === 'theory' ? 'block' : 'none';
+        }
+
+        async function submitQuestion() {
+            const type     = document.getElementById('q-type-sel').value;
+            const question = document.getElementById('q-question').value.trim();
+            const msgEl    = document.getElementById('q-form-msg');
+
+            if (!question) { msgEl.textContent = '⚠ Question text is required.'; msgEl.style.color='#f43f5e'; return; }
+
+            let payload = { type, question };
+
+            if (type === 'mcq') {
+                const opts = [
+                    document.getElementById('opt-a').value.trim(),
+                    document.getElementById('opt-b').value.trim(),
+                    document.getElementById('opt-c').value.trim(),
+                    document.getElementById('opt-d').value.trim(),
+                ];
+                if (opts.some(o => !o)) { msgEl.textContent = '⚠ Fill in all 4 options.'; msgEl.style.color='#f43f5e'; return; }
+                payload.options        = opts;
+                payload.correct_answer = parseInt(document.getElementById('q-correct').value);
+            } else if (type === 'code') {
+                payload.code_prompt = document.getElementById('q-code-prompt').value;
+                payload.placeholder = document.getElementById('q-placeholder').value;
+            } else {
+                payload.placeholder = document.getElementById('q-theory-placeholder').value;
+            }
+
+            msgEl.textContent = '⏳ Saving…'; msgEl.style.color = '#64748b';
+            try {
+                const resp = await fetch('/api/admin/questions', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await resp.json();
+                if (data.error) throw new Error(data.error);
+                msgEl.textContent = '✅ Question added!';
+                msgEl.style.color = '#10b981';
+                document.getElementById('q-question').value = '';
+                ['opt-a','opt-b','opt-c','opt-d'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
+                document.getElementById('q-code-prompt').value  = '';
+                loadAdminQuestions();
+                setTimeout(() => { msgEl.textContent = ''; }, 3000);
+            } catch(e) {
+                msgEl.textContent = '❌ Error: ' + e.message;
+                msgEl.style.color = '#f43f5e';
+            }
+        }
+
+        async function loadAdminQuestions() {
+            const tbody  = document.getElementById('questions-tbody');
+            const badge  = document.getElementById('q-count-badge');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--ms-grey-secondary);">Loading…</td></tr>';
+            try {
+                const resp = await fetch('/api/admin/questions');
+                const qs   = await resp.json();
+                badge.textContent = qs.length;
+                if (!qs.length) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--ms-grey-secondary);">No questions yet. Add one above.</td></tr>';
+                    return;
+                }
+                const TYPE_COLORS = { mcq:'#0078d4', code:'#107c10', theory:'#7c3aed' };
+                const TYPE_LABELS = { mcq:'📋 MCQ', code:'💻 Code', theory:'📖 Theory' };
+                tbody.innerHTML = qs.map(q => {
+                    let detail = '';
+                    if (q.type === 'mcq' && q.options) {
+                        detail = (q.options||[]).map((o,i) =>
+                            `<span style="color:${i===q.correct_answer?'#10b981':'inherit'};font-size:.8rem;">${'ABCD'[i]}: ${o}${i===q.correct_answer?' ✓':''}</span>`
+                        ).join('<br>');
+                    } else if (q.type === 'code') {
+                        detail = `<code style="font-size:.78rem;color:#64748b;">${(q.code_prompt||'').substring(0,60)}…</code>`;
+                    } else {
+                        detail = `<span style="font-size:.8rem;color:#64748b;">${q.placeholder||'—'}</span>`;
+                    }
+                    return `<tr>
+                        <td style="font-size:.8rem;color:#94a3b8;">#${q.id}</td>
+                        <td><span style="background:${TYPE_COLORS[q.type]||'#64748b'}22;
+                            color:${TYPE_COLORS[q.type]||'#64748b'};
+                            border:1px solid ${TYPE_COLORS[q.type]||'#64748b'}44;
+                            padding:.2rem .6rem;border-radius:20px;font-size:.75rem;font-weight:700;
+                            ">${TYPE_LABELS[q.type]||q.type}</span></td>
+                        <td style="max-width:260px;">${q.question}</td>
+                        <td style="max-width:220px;">${detail}</td>
+                        <td><button class="ms-btn ms-btn-secondary"
+                            style="padding:.3rem .7rem;font-size:.8rem;color:var(--ms-danger);border-color:var(--ms-danger);"
+                            onclick="deleteQuestion(${q.id})">🗑 Delete</button></td>
+                    </tr>`;
+                }).join('');
+            } catch(e) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--ms-danger);">Error loading questions.</td></tr>`;
+            }
+        }
+
+        async function deleteQuestion(id) {
+            if (!confirm('Delete this question from the bank?')) return;
+            const resp = await fetch('/api/admin/questions/' + id, { method: 'DELETE' });
+            const data = await resp.json();
+            if (data.error) { alert('Error: ' + data.error); return; }
+            loadAdminQuestions();
+        }
     </script>
 </body>
 </html>
