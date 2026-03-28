@@ -14,15 +14,16 @@ class OSMonitor(threading.Thread):
       - Suspicious typing speed (macro/copy-paste detection)
     """
 
-    BASELINE_DURATION  = 30    # seconds to collect baseline
-    DEVIATION_MULT     = 4.0   # flag if burst is >4× baseline mean (was 3×)
-    MAX_KEY_RATE       = 20    # hard cap (presses/sec) before baseline is ready
-    FLAG_COOLDOWN      = 15.0  # seconds between duplicate flags (was 5s)
+    BASELINE_DURATION   = 30    # seconds to collect baseline
+    DEVIATION_MULT      = 5.0   # flag if burst is >5× baseline mean (raised from 4×)
+    MAX_KEY_RATE        = 25    # hard cap (presses/sec) before baseline is ready
+    FLAG_COOLDOWN       = 30.0  # seconds between duplicate flags (raised from 15s)
 
-    # Dwell / flight dynamics thresholds
-    PASTE_FLIGHT_MIN   = 800   # ms — suspiciously long gap (could be paste) (was 300)
-    MACRO_DWELL_STD_MAX = 5   # ms std-dev: too consistent => macro
-    MIN_DYNAMICS_SAMPLE = 20   # need at least this many events before checking (was 10)
+    # Dwell / flight dynamics thresholds — more tolerant to avoid false positives
+    PASTE_FLIGHT_MIN    = 1200  # ms — long inter-key gap (was 800ms)
+    MACRO_DWELL_STD_MAX = 8     # ms std-dev: too Robot-consistent = macro (was 5ms)
+    MIN_DYNAMICS_SAMPLE = 30    # need at least this many events (was 20)
+    PASTE_HIT_COUNT     = 3     # ≥ this many of the last 5 flights must exceed threshold
 
     def __init__(self, callback):
         super().__init__()
@@ -123,11 +124,14 @@ class OSMonitor(threading.Thread):
         Detect copy-paste (single huge flight) and macro / auto-type
         (suspiciously uniform dwell times).  Called under _dyn_lock.
         """
-        # 1. Copy-paste: any single flight > PASTE_FLIGHT_MIN ms
-        if self._flight_times:
-            max_flight = max(self._flight_times[-5:])   # look at last 5
-            if max_flight > self.PASTE_FLIGHT_MIN:
-                self._flag(f"Possible copy-paste detected (flight={max_flight:.0f} ms)")
+        # 1. Copy-paste: require PASTE_HIT_COUNT of last 5 flights to exceed threshold
+        #    (single long pause often = user thinking, not pasting)
+        if self._flight_times and len(self._flight_times) >= 5:
+            recent_flights = self._flight_times[-5:]
+            hit_count = sum(1 for f in recent_flights if f > self.PASTE_FLIGHT_MIN)
+            if hit_count >= self.PASTE_HIT_COUNT:
+                max_flight = max(recent_flights)
+                self._flag(f"Possible copy-paste detected ({hit_count}/5 gaps >{self.PASTE_FLIGHT_MIN}ms, max={max_flight:.0f}ms)")
                 return
 
         # 2. Macro: dwell times suspiciously uniform

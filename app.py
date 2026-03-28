@@ -13,6 +13,13 @@ import db as database
 from modules.vision import VisionMonitor
 from modules.audio import AudioMonitor
 from modules.os_monitor import OSMonitor
+try:
+    from modules.face_recog import FaceRecognizer
+    face_recognizer = FaceRecognizer()
+    print("[App] Face recognition ready.")
+except Exception as _e:
+    face_recognizer = None
+    print(f"[App] Face recognition unavailable: {_e}")
 
 app = Flask(__name__)
 app.secret_key = "AI_PROCTOR_SECRET_KEY"  # for sessions
@@ -22,13 +29,14 @@ database.init_db()
 
 # ── Global state ──────────────────────────────────────────────────────────────
 cheat_stats = {
-    "warnings":     0,
-    "tab_switches": 0,   # separate counter for tab-switch violations
-    "events":       [],
-    "evidence":     [],  # list of evidence filenames
+    "warnings":           0,
+    "face_mismatch_count": 0,    # dedicated face-mismatch strike counter (max 3)
+    "tab_switches":        0,
+    "events":              [],
+    "evidence":            [],
 }
 is_exam_active   = False
-AUTO_STOP_LIMIT  = 15   # auto-stop after this many general warnings
+AUTO_STOP_LIMIT  = 25   # auto-stop after this many distinct warnings
 TAB_SWITCH_LIMIT = 3    # terminate after this many tab-switch violations
 
 vision_monitor = VisionMonitor()
@@ -77,10 +85,56 @@ def student_required(f):
     return decorated_function
 
 # ── Logging ───────────────────────────────────────────────────────────────────
+# Per-type cooldown prevents the same infraction type from flooding within N seconds
+_WARN_COOLDOWNS: dict = {}
+WARN_TYPE_COOLDOWN = 30.0  # seconds between same-type warnings (was 8s)
+
+def _warn_type_key(msg: str) -> str:
+    """Extract a short type key from a message for cooldown bucketing."""
+    m = msg.lower()
+    for kw in ("multiple people", "face mismatch", "no person", "looking",
+               "phone", "book", "audio", "window switched", "copy-paste",
+               "macro", "tab", "shortcut", "unusual typing"):
+        if kw in m:
+            return kw
+    return msg[:30]   # fallback: first 30 chars
+
 def log_infraction(msg, evidence_file=None):
     global cheat_stats, is_exam_active
+
+    # Per-type deduplication — suppress if same category was logged recently
+    key = _warn_type_key(msg)
+    now = time.time()
+    if now - _WARN_COOLDOWNS.get(key, 0) < WARN_TYPE_COOLDOWN:
+        # Update evidence silently even if warn is suppressed
+        if evidence_file:
+            cheat_stats["evidence"].append({
+                "file": evidence_file, "msg": msg, "timestamp": int(now),
+            })
+        return
+    _WARN_COOLDOWNS[key] = now
+
+    # ── Face-mismatch: dedicated 3-strike system ────────────────────────────────
+    is_face_mismatch = "FACE_MISMATCH:" in msg
+    if is_face_mismatch:
+        cheat_stats["face_mismatch_count"] += 1
+        strike = cheat_stats["face_mismatch_count"]
+        print(f"[!] IDENTITY STRIKE {strike}/3: {msg}")
+        if strike >= 3 and is_exam_active:
+            print("[!] IDENTITY STRIKE 3 — terminating exam.")
+            # Log all 3 strikes then stop
+            event = {"timestamp": int(now), "msg": msg, "face_mismatch_strike": strike}
+            cheat_stats["events"].append(event)
+            cheat_stats["warnings"] += 1
+            if evidence_file:
+                cheat_stats["evidence"].append({
+                    "file": evidence_file, "msg": msg, "timestamp": int(now),
+                })
+            stop_exam()
+            return
+
     print(f"[!] INCIDENT: {msg}")
-    event = {"timestamp": int(time.time()), "msg": msg}
+    event = {"timestamp": int(now), "msg": msg}
     cheat_stats["events"].append(event)
     cheat_stats["warnings"] += 1
 
@@ -88,7 +142,7 @@ def log_infraction(msg, evidence_file=None):
         cheat_stats["evidence"].append({
             "file": evidence_file,
             "msg":  msg,
-            "timestamp": int(time.time()),
+            "timestamp": int(now),
         })
 
     # Keep last 50 events
@@ -172,6 +226,7 @@ def index():
     return render_template('index.html', title="ScoreHunt | Home")
 
 @app.route('/check')
+@student_required
 def check():
     return render_template('check.html')
 
@@ -323,6 +378,7 @@ def get_stats():
         "warnings":          cheat_stats["warnings"],
         "tab_switches":      cheat_stats.get("tab_switches", 0),
         "tab_switch_limit":  TAB_SWITCH_LIMIT,
+        "face_mismatch_count": cheat_stats.get("face_mismatch_count", 0),
         "events":            cheat_stats["events"],
         "evidence":          cheat_stats["evidence"],
         "is_active":         is_exam_active,
@@ -410,9 +466,16 @@ def control_exam():
     data = request.json
     if data.get('action') == 'start':
         is_exam_active = True
-        cheat_stats = {"warnings": 0, "tab_switches": 0, "events": [], "evidence": [],
+        cheat_stats = {"warnings": 0, "face_mismatch_count": 0, "tab_switches": 0, "events": [], "evidence": [],
                        "student": data.get('student', 'Unknown'),
                        "started_at": int(time.time())}
+        # Reset per-type cooldown table for the fresh exam session
+        _WARN_COOLDOWNS.clear()
+
+        # Tell vision monitor which student is enrolled so it can compare faces
+        enrolled_user = data.get('student', '') or session.get('username', '')
+        if vision_monitor:
+            vision_monitor.set_enrolled_username(enrolled_user)
 
         if audio_monitor is None or not audio_monitor.running:
             audio_monitor = AudioMonitor(
@@ -465,17 +528,24 @@ def set_baseline():
     data = request.json or {}
     key_count  = int(data.get('keyCount', 0))
     duration   = int(data.get('duration', 30))
-    student    = data.get('student', 'Unknown')
+    student    = data.get('student', session.get('username', 'Unknown'))
     cheat_stats["browser_baseline"] = {
-        "student":    student,
-        "keyCount":   key_count,
-        "mouseMoves": data.get('mouseMoves', 0),
-        "duration":   duration,
+        "student":      student,
+        "keyCount":     key_count,
+        "mouseMoves":   data.get('mouseMoves', 0),
+        "duration":     duration,
+        "avgDwell":     data.get('avgDwell', 0),
+        "stdDwell":     data.get('stdDwell', 0),
+        "avgFlight":    data.get('avgFlight', 0),
+        "stdFlight":    data.get('stdFlight', 0),
+        "avgRate":      data.get('avgRate', 0),
     }
     # Wire baseline into running os_monitor immediately
     if os_monitor and os_monitor.running:
         os_monitor.set_browser_baseline(key_count, duration)
-    print(f"[Baseline] Set for {student}: {key_count} keys/{duration}s")
+
+    print(f"[Baseline] Set for {student}: {key_count} keys/{duration}s "
+          f"dwell={data.get('avgDwell',0):.0f}ms flight={data.get('avgFlight',0):.0f}ms")
     return jsonify({"status": "ok"})
 
 @app.route('/api/report_keystroke', methods=['POST'])
@@ -702,6 +772,70 @@ def admin_delete_question(q_id):
     if deleted:
         return jsonify({"status": "deleted"})
     return jsonify({"error": "Not found"}), 404
+
+
+# ── Face Recognition API ──────────────────────────────────────────────────────
+@app.route('/api/face/enroll', methods=['POST'])
+@student_required
+def face_enroll():
+    """Receive one or more JPEG frames from the verify_face page and enroll the student."""
+    if face_recognizer is None:
+        return jsonify({"error": "Face recognition not available"}), 503
+
+    username = session.get('username')
+    files = request.files.getlist('frame')  # supports multi-frame upload
+    if not files:
+        return jsonify({"error": "No frames provided"}), 400
+
+    frames = []
+    for f in files:
+        nparr = np.frombuffer(f.read(), np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if frame is not None:
+            frames.append(frame)
+
+    if not frames:
+        return jsonify({"error": "Could not decode frames"}), 400
+
+    success = face_recognizer.enroll(username, *frames)
+    if success:
+        print(f"[Face] Enrolled {username} with {len(frames)} frame(s).")
+        return jsonify({"status": "enrolled", "username": username})
+    else:
+        return jsonify({"error": "No face detected in frames — please ensure your face is visible and well-lit"}), 422
+
+
+@app.route('/api/face/status')
+@student_required
+def face_status():
+    """Check whether the current student has an enrolled face model."""
+    if face_recognizer is None:
+        return jsonify({"enrolled": False, "reason": "unavailable"})
+    username = session.get('username')
+    enrolled = face_recognizer.is_enrolled(username)
+    return jsonify({"enrolled": enrolled, "username": username})
+
+
+@app.route('/api/face/verify', methods=['POST'])
+@student_required
+def face_verify_api():
+    """Quick one-shot verification used on the verify_id page."""
+    if face_recognizer is None:
+        return jsonify({"match": True, "reason": "unavailable"})  # passthrough
+    username = session.get('username')
+    if not face_recognizer.is_enrolled(username):
+        return jsonify({"match": False, "reason": "not_enrolled"})
+
+    f = request.files.get('frame')
+    if not f:
+        return jsonify({"error": "No frame"}), 400
+    nparr = np.frombuffer(f.read(), np.uint8)
+    frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    if frame is None:
+        return jsonify({"error": "Decode failed"}), 400
+
+    match, conf = face_recognizer.verify(username, frame)
+    return jsonify({"match": match, "confidence": round(conf, 1)})
 
 
 if __name__ == "__main__":

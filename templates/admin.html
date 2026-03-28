@@ -168,7 +168,7 @@
             <section id="sec-schedules" class="admin-section" style="display:none;">
                 <div class="section-header">
                     <h2>Exam Schedules</h2>
-                    <button class="ms-btn ms-btn-primary">+ New Schedule</button>
+                    <button class="ms-btn ms-btn-primary" onclick="openScheduleModal()">+ New Schedule</button>
                 </div>
                 <div class="ms-card">
                     <table class="ms-table">
@@ -180,21 +180,49 @@
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="schedules-tbody">
                             <tr>
                                 <td>AI Fundamentals 101</td>
                                 <td>March 25, 2026</td>
                                 <td>45</td>
-                                <td><a href="#" style="color: var(--ms-blue);">Edit</a></td>
+                                <td><a href="#" onclick="alert('Edit mode not available yet')" style="color: var(--ms-blue);">Edit</a></td>
                             </tr>
                             <tr>
                                 <td>Machine Learning Advanced</td>
                                 <td>April 02, 2026</td>
                                 <td>12</td>
-                                <td><a href="#" style="color: var(--ms-blue);">Edit</a></td>
+                                <td><a href="#" onclick="alert('Edit mode not available yet')" style="color: var(--ms-blue);">Edit</a></td>
                             </tr>
                         </tbody>
                     </table>
+                </div>
+
+                <!-- NEW SCHEDULE MODAL -->
+                <div class="modal-overlay" id="schedule-modal" style="z-index: 2000;">
+                    <div class="modal-content" style="max-width: 500px;">
+                        <div class="modal-header">
+                            <h2 style="margin: 0; font-size: 1.25rem;">Create New Exam Schedule</h2>
+                            <button class="ms-btn ms-btn-secondary" onclick="closeScheduleModal()" style="border:none;background:transparent;font-size:1.2rem;padding:0;cursor:pointer;">✕</button>
+                        </div>
+                        <div class="modal-body">
+                            <div style="margin-bottom: 1rem;">
+                                <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Exam Name</label>
+                                <input type="text" id="sch-name" class="ms-input" placeholder="e.g. Data Structures Midterm" style="width: 100%;">
+                            </div>
+                            <div style="margin-bottom: 1rem;">
+                                <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Start Date & Time</label>
+                                <input type="datetime-local" id="sch-date" class="ms-input" style="width: 100%;">
+                            </div>
+                            <div style="margin-bottom: 1.5rem;">
+                                <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Expected Students</label>
+                                <input type="number" id="sch-students" class="ms-input" placeholder="0" style="width: 100%;">
+                            </div>
+                            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                                <button class="ms-btn ms-btn-secondary" onclick="closeScheduleModal()">Cancel</button>
+                                <button class="ms-btn ms-btn-primary" onclick="saveSchedule()">Save Schedule</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -444,6 +472,46 @@
             
             document.getElementById('sec-' + sectionId).style.display = 'block';
             if (element) element.classList.add('active');
+        }
+
+        // Schedule Modal Logic
+        function openScheduleModal() {
+            document.getElementById('sch-name').value = '';
+            document.getElementById('sch-date').value = '';
+            document.getElementById('sch-students').value = '';
+            document.getElementById('schedule-modal').style.display = 'flex';
+        }
+
+        function closeScheduleModal() {
+            document.getElementById('schedule-modal').style.display = 'none';
+        }
+
+        function saveSchedule() {
+            const name = document.getElementById('sch-name').value.trim();
+            const dateStr = document.getElementById('sch-date').value;
+            const students = document.getElementById('sch-students').value || '0';
+
+            if (!name || !dateStr) {
+                alert("Please fill in the exam name and date.");
+                return;
+            }
+
+            // Format date nicely
+            const d = new Date(dateStr);
+            const options = { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+            const formattedDate = d.toLocaleDateString(undefined, options);
+
+            const tbody = document.getElementById('schedules-tbody');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${name}</strong></td>
+                <td>${formattedDate}</td>
+                <td>${students}</td>
+                <td><a href="#" onclick="alert('Edit mode not available yet')" style="color: var(--ms-blue);">Edit</a></td>
+            `;
+            tbody.insertBefore(tr, tbody.firstChild);
+
+            closeScheduleModal();
         }
 
         // Evidence Loading

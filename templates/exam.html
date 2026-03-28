@@ -177,15 +177,13 @@
     .theory-textarea:focus { border-color: var(--ms-blue); box-shadow:0 0 0 3px rgba(0,120,212,0.08); }
 
     /* ── Cheat Warning Modal ───────────────────────────────────────────────── */
-    #cheat-warn-modal {
-        position:fixed; inset:0; z-index:99999;
-        background:rgba(0,0,0,0.88);
-        display:none; align-items:center; justify-content:center;
-        font-family:'Inter',sans-serif;
-        animation: fadeInBg .3s ease;
+    #cheat-warn-modal, #identity-warn-modal {
+        display:none; position:fixed; top:0;left:0;width:100%;height:100%;
+        background:rgba(15,23,42,0.85); backdrop-filter:blur(10px); z-index:9999;
+        align-items:center; justify-content:center;
     }
-    #cheat-warn-modal.show { display:flex; }
-    @keyframes fadeInBg { from { opacity:0; } to { opacity:1; } }
+    #cheat-warn-modal.show, #identity-warn-modal.show { display:flex; animation:fadeIn .3s ease; }
+    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 
     .cwm-box {
         background:#fff; border-radius:20px; padding:3rem 3.5rem;
@@ -301,6 +299,25 @@
         <div class="cwm-countdown" id="cwm-countdown">5</div>
         <div class="cwm-cd-label">This warning closes automatically</div>
         <button class="cwm-btn" id="cwm-btn" onclick="closeCWM()">I Understand — Return to Exam</button>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     IDENTITY ALERT MODAL — dedicated 3 strikes for unrecognised faces
+═══════════════════════════════════════════════════════════════════════════ -->
+<div id="identity-warn-modal">
+    <div class="cwm-box">
+        <span class="cwm-icon" id="iwm-icon">👤❓</span>
+        <div class="cwm-title" id="iwm-title">Identity Alert Detected</div>
+        <div class="cwm-sub"  id="iwm-sub">An unrecognised person has been detected looking at the exam.</div>
+        <div class="cwm-pills">
+            <div class="cwm-pill" id="iwm-p1">Warning 1</div>
+            <div class="cwm-pill" id="iwm-p2">Warning 2</div>
+            <div class="cwm-pill" id="iwm-p3">Warning 3</div>
+        </div>
+        <div class="cwm-countdown" id="iwm-countdown">5</div>
+        <div class="cwm-cd-label">This warning closes automatically</div>
+        <button class="cwm-btn" id="iwm-btn" onclick="closeIWM()">I Understand — Return to Exam</button>
     </div>
 </div>
 
@@ -514,6 +531,7 @@ function startExamAfterPermissions() {
     // Update screen badge in sidebar
     document.getElementById('screen-status').textContent = permState.screen ? 'Active' : 'Off';
     document.getElementById('screen-status').className   = permState.screen ? 's-val text-success' : 's-val text-secondary';
+    examStartTime = Date.now();  // Record when the exam actually begins
     // Start exam backend, timer, monitoring
     fetch('/api/control', { method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({action:'start', student: studentName}) });
@@ -704,10 +722,12 @@ function endExam() {
 // ════════════════════════════════════════════════════════════════════════════
 // CHEAT WARNING MODAL — 3-strike system
 // ════════════════════════════════════════════════════════════════════════════
-const CHEAT_WARN_LIMIT = 3;
+const CHEAT_WARN_LIMIT = 8;
 let   cheatWarnCount   = 0;  // local counter driven from server warnings
 let   cwmCountdown     = null;
 let   cwmBlocked       = false;   // while modal is open, countdown runs
+let   examStartTime    = null;    // set when exam actually starts
+const GRACE_PERIOD_MS  = 60000;  // 60-second grace before auto-stop overlay fires
 
 function showCheatWarning(count, reason) {
     cheatWarnCount = count;
@@ -767,6 +787,72 @@ function closeCWM() {
     document.getElementById('cheat-warn-modal').classList.remove('show');
     cwmBlocked = false;
     if (cwmCountdown) { clearInterval(cwmCountdown); cwmCountdown = null; }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// IDENTITY WARNING MODAL — dedicated 3-strike system for face mismatch
+// ════════════════════════════════════════════════════════════════════════════
+const IDENTITY_WARN_LIMIT = 3;
+let   identityWarnCount   = 0;
+let   iwmCountdown        = null;
+
+function showIdentityWarning(count) {
+    identityWarnCount = count;
+    const modal = document.getElementById('identity-warn-modal');
+    const isFinal = count >= IDENTITY_WARN_LIMIT;
+
+    document.getElementById('iwm-icon' ).textContent = isFinal ? '🚫' : '👤❓';
+    document.getElementById('iwm-title').textContent = isFinal
+        ? 'Exam Terminated!'
+        : `Identity Alert ${count} of ${IDENTITY_WARN_LIMIT}`;
+    document.getElementById('iwm-sub'  ).textContent = isFinal
+        ? 'Exam terminated due to repeated presence of unrecognised persons.'
+        : `An unrecognised person was detected. ${IDENTITY_WARN_LIMIT - count} warning(s) remaining before termination.`;
+
+    // Update pills
+    for (let i = 1; i <= IDENTITY_WARN_LIMIT; i++) {
+        const p = document.getElementById(`iwm-p${i}`);
+        if (!p) continue;
+        p.className = 'cwm-pill';
+        if (i < count)  p.classList.add('done');
+        if (i === count) p.classList.add('active');
+    }
+
+    // Countdown button
+    const btn = document.getElementById('iwm-btn');
+    if (isFinal) {
+        btn.textContent = '📊 View Results';
+        btn.onclick = () => { terminateExamForCheating('Unrecognised person detected repeatedly.'); };
+    } else {
+        btn.textContent = 'I Understand — Return to Exam';
+        btn.onclick = () => { closeIWM(); };
+    }
+
+    modal.classList.add('show');
+    cwmBlocked = true; // also blocks background auto-stops while this is up
+
+    // Countdown timer
+    let secs = isFinal ? 10 : 6;
+    document.getElementById('iwm-countdown').textContent = secs;
+    if (iwmCountdown) clearInterval(iwmCountdown);
+    iwmCountdown = setInterval(() => {
+        secs--;
+        document.getElementById('iwm-countdown').textContent = Math.max(0, secs);
+        if (secs <= 0) {
+            clearInterval(iwmCountdown);
+            if (isFinal) {
+                terminateExamForCheating('Unrecognised person detected repeatedly.');
+            } else {
+                closeIWM();
+            }
+        }
+    }, 1000);
+}
+
+function closeIWM() {
+    document.getElementById('identity-warn-modal').classList.remove('show');
+    cwmBlocked = false;
+    if (iwmCountdown) { clearInterval(iwmCountdown); iwmCountdown = null; }
 }
 
 function terminateExamForCheating(reason) {
@@ -1065,9 +1151,25 @@ function startStatsPolling() {
             document.getElementById('system-status').className   = 'status-badge active';
 
             // ── NEW Cheat-Warning Modal trigger ──────────────────────────────
-            // Fire when warnings count increases (new violation from server)
+            // 1) Identity strike check (takes priority)
+            const newIdentityWarn = data.face_mismatch_count || 0;
+            if (newIdentityWarn > identityWarnCount && !cwmBlocked) {
+                if (newIdentityWarn >= IDENTITY_WARN_LIMIT) {
+                    showIdentityWarning(IDENTITY_WARN_LIMIT);
+                } else {
+                    showIdentityWarning(newIdentityWarn);
+                }
+            } else if (newIdentityWarn > identityWarnCount) {
+                identityWarnCount = newIdentityWarn; // update tracker even if blocked
+            }
+
+            // 2) General warnings check
             const newWarn = data.warnings || 0;
-            if (newWarn > lastKnownWarnings && !cwmBlocked) {
+            // Exclude face_mismatch_count from the general warning trigger so we don't double-pop modals
+            const newGeneralWarn = newWarn - newIdentityWarn;
+            const oldGeneralWarn = lastKnownWarnings - identityWarnCount;
+
+            if (newGeneralWarn > oldGeneralWarn && !cwmBlocked) {
                 lastKnownWarnings = newWarn;
                 // Find the latest event message to show as reason
                 const latestEvent = (data.events || []).slice(-1)[0];
@@ -1082,7 +1184,9 @@ function startStatsPolling() {
             }
 
             // Auto-stop triggered by server (outside of cheat modal flow)
-            if (!data.is_active && !cwmBlocked &&
+            // Only fire if exam has been running longer than the grace period
+            const examRunning = examStartTime && (Date.now() - examStartTime) > GRACE_PERIOD_MS;
+            if (!data.is_active && examRunning && !cwmBlocked &&
                 document.getElementById('violation-overlay').style.display !== 'flex' &&
                 document.getElementById('cheat-warn-modal').classList.contains('show') === false) {
                 showViolationOverlay('The proctoring system detected a critical violation.');

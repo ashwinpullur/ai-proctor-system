@@ -6,50 +6,177 @@
     <title>ScoreHunt | Face Verification</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='fluent.css') }}">
     <style>
-        body { background-color: var(--ms-off-white); display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-        .verify-card { width: 100%; max-width: 600px; padding: 3rem; background: var(--ms-white); border: 1px solid var(--ms-grey-border); box-shadow: var(--ms-shadow); }
-        .cam-preview { width: 100%; height: 350px; background: #000; border-radius: 50%; width: 350px; margin: 0 auto 2rem; overflow: hidden; position: relative; border: 4px solid var(--ms-blue); }
+        body {
+            background-color: var(--ms-off-white);
+            display: flex; align-items: center; justify-content: center; min-height: 100vh;
+        }
+        .verify-card {
+            width: 100%; max-width: 620px; padding: 3rem;
+            background: var(--ms-white); border: 1px solid var(--ms-grey-border);
+            box-shadow: var(--ms-shadow); border-radius: var(--ms-radius);
+        }
+
+        /* Circular face preview */
+        .cam-ring {
+            position: relative; width: 320px; height: 320px;
+            border-radius: 50%; overflow: hidden; border: 4px solid var(--ms-blue);
+            margin: 0 auto 1.5rem; background: #000;
+            box-shadow: 0 0 0 8px rgba(0,120,212,0.12), var(--ms-shadow);
+            transition: border-color .4s;
+        }
+        .cam-ring.success { border-color: var(--ms-success); box-shadow: 0 0 0 8px rgba(16,185,129,0.12); }
+        .cam-ring.error   { border-color: var(--ms-danger);  box-shadow: 0 0 0 8px rgba(244,63,94,0.12); }
+        .cam-ring.scanning { border-color: #f59e0b; box-shadow: 0 0 0 8px rgba(245,158,11,0.12); animation: pulse-ring 1.4s infinite alternate; }
+        @keyframes pulse-ring { from { box-shadow: 0 0 0 8px rgba(245,158,11,0.12); } to { box-shadow: 0 0 0 14px rgba(245,158,11,0.0); } }
+
         video { width: 100%; height: 100%; object-fit: cover; }
-        .face-status { text-align: center; font-weight: 600; margin-bottom: 2rem; color: var(--ms-blue); }
+        canvas { display: none; }
+
+        /* Status line */
+        .face-status {
+            text-align: center; font-weight: 600; font-size: 1rem;
+            margin-bottom: 1.75rem; color: var(--ms-blue);
+            min-height: 1.4rem; transition: color .3s;
+        }
+        .face-status.ok     { color: var(--ms-success); }
+        .face-status.err    { color: var(--ms-danger); }
+        .face-status.busy   { color: #f59e0b; }
+
+        /* Sample bar */
+        .sample-row { display: flex; gap: .45rem; justify-content: center; margin-bottom: 1.5rem; }
+        .sample-dot {
+            width: 14px; height: 14px; border-radius: 50%;
+            background: var(--ms-grey-border); border: 2px solid var(--ms-grey-border);
+            transition: all .3s;
+        }
+        .sample-dot.captured { background: #10b981; border-color: #10b981; }
+
+        .btn-row { display: flex; justify-content: center; gap: 1rem; }
     </style>
 </head>
 <body>
-    <div class="verify-card" style="text-align: center;">
-        <ms-badge class="ms-badge ms-badge-info" style="margin-bottom: 1rem;">Verification Step 2 of 2</ms-badge>
-        <h1>ScoreHunt Face Verification</h1>
-        <p>Look directly at the camera and ensure your face is well-lit. This will be used as your baseline for the exam.</p>
-        
-        <div class="cam-preview">
-            <video id="video" autoplay muted></video>
-        </div>
+<div class="verify-card" style="text-align: center;">
+    <ms-badge class="ms-badge ms-badge-info" style="margin-bottom: 1rem;">Verification Step 2 of 2</ms-badge>
+    <h1 style="margin-bottom: .5rem;">Face Enrollment</h1>
+    <p style="color: var(--ms-grey-secondary); font-size: .9rem; margin-bottom: 1.75rem;">
+        Look directly at the camera. We will capture <strong>5 samples</strong> of your face to build your identity baseline for the exam.
+    </p>
 
-        <div class="face-status" id="status">Adjusting focus...</div>
-
-        <div style="display: flex; justify-content: center; gap: 1rem;">
-            <button class="ms-btn ms-btn-primary" onclick="verifyFace()">Verify Face</button>
-        </div>
+    <div class="cam-ring" id="cam-ring">
+        <video id="video" autoplay muted playsinline></video>
     </div>
 
-    <script>
-        const video = document.getElementById('video');
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(stream => video.srcObject = stream)
-            .catch(err => console.error("Error accessing camera:", err));
+    <!-- Hidden capture canvas -->
+    <canvas id="capture-canvas" width="640" height="480"></canvas>
 
-        function verifyFace() {
-            const status = document.getElementById('status');
-            const btn = document.querySelector('.ms-btn-primary');
-            status.innerText = "Processing biometric data...";
-            btn.disabled = true;
-            
-            setTimeout(() => {
-                status.innerText = "Success! Identity Confirmed.";
-                status.style.color = "var(--ms-success)";
-                setTimeout(() => {
-                    window.location.href = "/student";
-                }, 1000);
-            }, 2000);
+    <!-- Sample progress dots -->
+    <div class="sample-row" id="sample-row">
+        <div class="sample-dot" id="dot-0"></div>
+        <div class="sample-dot" id="dot-1"></div>
+        <div class="sample-dot" id="dot-2"></div>
+        <div class="sample-dot" id="dot-3"></div>
+        <div class="sample-dot" id="dot-4"></div>
+    </div>
+
+    <div class="face-status" id="status">Position your face in the circle and press Enroll.</div>
+
+    <div class="btn-row">
+        <button class="ms-btn ms-btn-primary" id="enroll-btn" onclick="startEnrollment()">📸 Enroll My Face</button>
+    </div>
+</div>
+
+<script>
+const video  = document.getElementById('video');
+const ring   = document.getElementById('cam-ring');
+const status = document.getElementById('status');
+const btn    = document.getElementById('enroll-btn');
+
+const TOTAL_SAMPLES = 5;
+let stream   = null;
+let samples  = [];
+let enrolling = false;
+
+// ── Start camera ─────────────────────────────────────────────────────────────
+navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' } })
+    .then(s => { stream = s; video.srcObject = s; })
+    .catch(err => {
+        setStatus('⚠ Camera access denied. Please allow camera and refresh.', 'err');
+        btn.disabled = true;
+    });
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function setStatus(msg, cls) {
+    status.textContent = msg;
+    status.className = 'face-status' + (cls ? ' ' + cls : '');
+}
+
+function markDot(index) {
+    const dot = document.getElementById(`dot-${index}`);
+    if (dot) dot.classList.add('captured');
+}
+
+function captureFrame() {
+    const canvas = document.getElementById('capture-canvas');
+    canvas.width  = video.videoWidth  || 640;
+    canvas.height = video.videoHeight || 480;
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+}
+
+// ── Enrollment: capture 5 frames, 600ms apart, then POST all to server ────────
+async function startEnrollment() {
+    if (enrolling) return;
+    enrolling = true;
+    btn.disabled = true;
+    samples = [];
+
+    ring.classList.add('scanning');
+    setStatus('Scanning — hold still…', 'busy');
+
+    // Capture 5 frames with short pauses
+    for (let i = 0; i < TOTAL_SAMPLES; i++) {
+        await new Promise(r => setTimeout(r, 600));
+        const blob = await captureFrame();
+        samples.push(blob);
+        markDot(i);
+        setStatus(`Captured ${i+1} of ${TOTAL_SAMPLES} samples…`, 'busy');
+    }
+
+    setStatus('Processing — enrolling your face…', 'busy');
+
+    // POST all frames to /api/face/enroll
+    const form = new FormData();
+    samples.forEach(blob => form.append('frame', blob, 'frame.jpg'));
+
+    try {
+        const resp = await fetch('/api/face/enroll', { method: 'POST', body: form });
+        const data = await resp.json();
+
+        if (resp.ok && data.status === 'enrolled') {
+            ring.classList.remove('scanning');
+            ring.classList.add('success');
+            setStatus('✅ Face enrolled successfully! Proceeding to baseline assessment…', 'ok');
+            btn.textContent = '✓ Enrolled';
+            setTimeout(() => { window.location.href = '/check'; }, 1800);
+        } else {
+            throw new Error(data.error || 'Enrollment failed');
         }
-    </script>
+    } catch (err) {
+        ring.classList.remove('scanning');
+        ring.classList.add('error');
+        setStatus('❌ ' + (err.message || 'Enrollment failed — please try again'), 'err');
+        btn.disabled = false;
+        btn.textContent = '🔄 Try Again';
+        enrolling = false;
+        samples = [];
+        // Reset dots
+        for (let i = 0; i < TOTAL_SAMPLES; i++) {
+            const d = document.getElementById(`dot-${i}`);
+            if (d) d.classList.remove('captured');
+        }
+        setTimeout(() => { ring.classList.remove('error'); }, 3000);
+    }
+}
+</script>
 </body>
 </html>

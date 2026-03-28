@@ -3,166 +3,683 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ScoreHunt | Environment Check</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>ScoreHunt | Baseline Behaviour Assessment</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='fluent.css') }}">
     <style>
-        body { background-color: var(--ms-off-white); display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-        .check-card { 
-            width: 100%; max-width: 600px; padding: 2.75rem; 
-            background: var(--ms-white); border: 1px solid var(--ms-grey-border); 
-            box-shadow: 0 2px 4px rgba(0,0,0,.14);
+        * { box-sizing: border-box; }
+        body {
+            background-color: var(--ms-off-white);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
         }
-        .ms-logo-small { margin-bottom: 1.25rem; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 1.1rem; }
-        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #1b1b1b; }
-        .check-subtitle { color: #64748b; font-size: 0.9rem; margin-bottom: 2rem; }
-        .check-row { padding: 1rem; border-bottom: 1px solid var(--ms-off-white); display: flex; align-items: center; gap: 1rem; }
-        .check-icon { font-size: 1.25rem; }
-        .check-info { flex: 1; }
-        .check-status { font-weight: 700; font-size: 0.8rem; }
+
+        /* ── Layout ─────────────────────────────────────────────────────────── */
+        .bl-wrap {
+            width: 100%;
+            max-width: 860px;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* ── Header card ─────────────────────────────────────────────────────── */
+        .bl-header {
+            background: var(--ms-white);
+            border: 1px solid var(--ms-grey-border);
+            box-shadow: var(--ms-shadow);
+            border-radius: var(--ms-radius);
+            padding: 2rem 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
+        }
+        .bl-header-left h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0 0 .3rem;
+        }
+        .bl-header-left p {
+            color: var(--ms-grey-secondary);
+            font-size: .9rem;
+            margin: 0;
+            line-height: 1.5;
+        }
+        /* Step progress pills */
+        .bl-steps {
+            display: flex;
+            gap: .5rem;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .bl-step {
+            width: 28px; height: 28px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: .75rem; font-weight: 700;
+            background: var(--ms-grey-border); color: var(--ms-grey-secondary);
+            transition: all .3s;
+        }
+        .bl-step.active { background: var(--ms-blue); color: #fff; }
+        .bl-step.done   { background: var(--ms-success); color: #fff; }
+        .bl-step-sep { width: 24px; height: 2px; background: var(--ms-grey-border); }
+        .bl-step-sep.done { background: var(--ms-success); }
+
+        /* ── Metrics row ─────────────────────────────────────────────────────── */
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+        .metric-card {
+            background: var(--ms-white);
+            border: 1px solid var(--ms-grey-border);
+            border-radius: var(--ms-radius);
+            padding: 1.25rem;
+            box-shadow: var(--ms-shadow);
+            text-align: center;
+            transition: border-color .3s;
+        }
+        .metric-card.active { border-color: var(--ms-blue); }
+        .metric-card.done   { border-color: var(--ms-success); }
+        .m-icon  { font-size: 1.5rem; margin-bottom: .4rem; }
+        .m-label { font-size: .7rem; font-weight: 700; text-transform: uppercase;
+                   letter-spacing: .06em; color: var(--ms-grey-secondary); margin-bottom: .3rem; }
+        .m-value { font-size: 1.6rem; font-weight: 800; color: var(--ms-blue);
+                   font-family: 'JetBrains Mono', monospace; line-height: 1; }
+        .m-unit  { font-size: .75rem; color: var(--ms-grey-secondary); margin-top: .2rem; }
+
+        /* ── Main content cards ──────────────────────────────────────────────── */
+        .bl-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .bl-card {
+            background: var(--ms-white);
+            border: 1px solid var(--ms-grey-border);
+            border-radius: var(--ms-radius);
+            box-shadow: var(--ms-shadow);
+            padding: 1.75rem;
+        }
+        .bl-card h2 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin: 0 0 1rem;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+        }
+
+        /* Typing sample box */
+        .sample-prompt {
+            background: var(--ms-grey-light);
+            border: 1px solid var(--ms-grey-border);
+            border-radius: 8px;
+            padding: .85rem 1rem;
+            font-size: .85rem;
+            line-height: 1.6;
+            color: var(--ms-grey-secondary);
+            margin-bottom: .75rem;
+            font-style: italic;
+        }
+        .sample-input {
+            width: 100%;
+            min-height: 100px;
+            border: 2px solid var(--ms-grey-border);
+            border-radius: 8px;
+            padding: .85rem 1rem;
+            font-family: 'Inter', sans-serif;
+            font-size: .95rem;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            transition: border-color .2s;
+            background: var(--ms-white);
+            color: #000;
+        }
+        .sample-input:focus { border-color: var(--ms-blue); }
+        .sample-input:disabled { background: var(--ms-grey-light); color: var(--ms-grey-secondary); }
+        .sample-hint { font-size: .78rem; color: var(--ms-grey-secondary); margin-top: .5rem; }
+
+        /* Waveform canvas */
+        #waveform-canvas {
+            width: 100%;
+            height: 80px;
+            border-radius: 8px;
+            background: #f0f4f8;
+            border: 1px solid var(--ms-grey-border);
+            display: block;
+            margin-bottom: .75rem;
+        }
+
+        /* Mouse heatmap */
+        #mouse-canvas {
+            width: 100%;
+            height: 140px;
+            border-radius: 8px;
+            background: #0f172a;
+            display: block;
+            cursor: crosshair;
+        }
+        .mouse-hint { font-size: .78rem; color: var(--ms-grey-secondary); margin-top: .5rem; }
+
+        /* Dynamics chart */
+        #dyn-canvas {
+            width: 100%;
+            height: 100px;
+            border-radius: 8px;
+            background: #f0f4f8;
+            border: 1px solid var(--ms-grey-border);
+            display: block;
+            margin-bottom: .75rem;
+        }
+        .dyn-legend { display: flex; gap: 1rem; font-size: .75rem; }
+        .dyn-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: .3rem; }
+
+        /* Phase / progress bar */
+        .phase-row {
+            background: var(--ms-white);
+            border: 1px solid var(--ms-grey-border);
+            border-radius: var(--ms-radius);
+            padding: 1.5rem 2rem;
+            box-shadow: var(--ms-shadow);
+        }
+        .phase-label { font-weight: 700; font-size: 1rem; margin-bottom: .75rem;
+                       display: flex; justify-content: space-between; align-items: center; }
+        .phase-timer { color: var(--ms-blue); font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; }
+        .progress-bg { background: var(--ms-grey-border); height: 10px; border-radius: 10px; overflow: hidden; }
+        .progress-fill {
+            height: 100%; background: var(--ms-blue); border-radius: 10px;
+            width: 0%; transition: width .8s ease;
+        }
+        .progress-fill.done { background: var(--ms-success); }
+
+        /* Phase status chips */
+        .phase-chips { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .75rem; }
+        .phase-chip {
+            font-size: .72rem; font-weight: 700; padding: .25rem .75rem;
+            border-radius: 20px; border: 1px solid var(--ms-grey-border);
+            color: var(--ms-grey-secondary); background: var(--ms-grey-light);
+        }
+        .phase-chip.active { background: rgba(0,120,212,.1); border-color: var(--ms-blue); color: var(--ms-blue); }
+        .phase-chip.done   { background: rgba(16,185,129,.1); border-color: var(--ms-success); color: var(--ms-success); }
+
+        /* Bottom action row */
+        .bl-footer {
+            background: var(--ms-white);
+            border: 1px solid var(--ms-grey-border);
+            border-radius: var(--ms-radius);
+            box-shadow: var(--ms-shadow);
+            padding: 1.25rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        .bl-footer-note { font-size: .82rem; color: var(--ms-grey-secondary); max-width: 460px; }
+
+        /* Summary panel (shown after capture) */
+        #baseline-summary {
+            display: none;
+            background: rgba(16,185,129,.06);
+            border: 1px solid rgba(16,185,129,.25);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            font-size: .85rem;
+            line-height: 1.7;
+            margin-top: .75rem;
+        }
+
+        @media(max-width:700px) {
+            .bl-grid { grid-template-columns: 1fr; }
+            .metrics-row { grid-template-columns: 1fr 1fr; }
+            .bl-header { flex-direction: column; }
+        }
     </style>
 </head>
 <body>
-    <div class="check-card">
-        <div class="ms-logo-small">
-            <div class="ms-symbol-tiny" style="background: var(--ms-blue); width: 16px; height: 16px; border-radius: 2px; color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800;">SH</div>
-            <span>ScoreHunt</span>
+<div class="bl-wrap">
+
+    <!-- Header -->
+    <div class="bl-header">
+        <div class="bl-header-left">
+            <h1>⌨️ Baseline Behaviour Assessment</h1>
+            <p>Before you begin the exam, we collect your <strong>normal typing rhythm</strong> and <strong>mouse movement patterns</strong>. This creates a personalised behavioural baseline used to detect anomalies during the exam.</p>
         </div>
-        <h1>Environment Check</h1>
-        <p class="check-subtitle">Verifying requirements before the session begins.</p>
+        <div class="bl-steps">
+            <div class="bl-step done" title="ID Verified">1</div>
+            <div class="bl-step-sep done"></div>
+            <div class="bl-step done" title="Face Enrolled">2</div>
+            <div class="bl-step-sep done"></div>
+            <div class="bl-step active" title="Baseline">3</div>
+            <div class="bl-sep"></div>
+            <div class="bl-step-sep"></div>
+            <div class="bl-step" title="Exam">4</div>
+        </div>
+    </div>
 
-        <div class="check-list">
-            <!-- Internet -->
-            <div class="check-row" id="row-internet">
-                <span class="check-icon">🌐</span>
-                <div class="check-info"><strong>Internet Connection</strong><span id="internet-detail">Checking latency...</span></div>
-                <span class="check-status running" id="status-internet"><span class="spinner"></span>Checking</span>
+    <!-- Live metrics -->
+    <div class="metrics-row">
+        <div class="metric-card" id="mc-keys">
+            <div class="m-icon">⌨️</div>
+            <div class="m-label">Keystrokes</div>
+            <div class="m-value" id="mv-keys">0</div>
+            <div class="m-unit">total pressed</div>
+        </div>
+        <div class="metric-card" id="mc-speed">
+            <div class="m-icon">⚡</div>
+            <div class="m-label">Typing Speed</div>
+            <div class="m-value" id="mv-speed">0</div>
+            <div class="m-unit">keys / sec</div>
+        </div>
+        <div class="metric-card" id="mc-dwell">
+            <div class="m-icon">🕐</div>
+            <div class="m-label">Avg Dwell</div>
+            <div class="m-value" id="mv-dwell">—</div>
+            <div class="m-unit">ms hold time</div>
+        </div>
+        <div class="metric-card" id="mc-mouse">
+            <div class="m-icon">🖱️</div>
+            <div class="m-label">Mouse Moves</div>
+            <div class="m-value" id="mv-mouse">0</div>
+            <div class="m-unit">events</div>
+        </div>
+    </div>
+
+    <!-- Main grid: Typing + Visualisations -->
+    <div class="bl-grid">
+
+        <!-- Left: Typing sample -->
+        <div class="bl-card">
+            <h2>📝 Typing Sample</h2>
+            <div class="sample-prompt" id="prompt-text">
+                Type the passage below naturally — at your normal exam pace. Do not rush or slow down artificially.
+                <br><br>
+                <strong>"The quick brown fox jumps over the lazy dog near the riverbank where flowers bloom every spring season."</strong>
             </div>
+            <textarea class="sample-input" id="sample-textarea" rows="4"
+                placeholder="Start typing the passage above here…"
+                spellcheck="false" autocorrect="off" autocomplete="off"></textarea>
+            <div class="sample-hint" id="sample-hint">Start typing — baseline collection begins automatically.</div>
 
-            <!-- Camera -->
-            <div class="check-row" id="row-camera">
-                <span class="check-icon">📹</span>
-                <div class="check-info"><strong>Camera Access</strong><span id="camera-detail">Requesting permission...</span></div>
-                <span class="check-status running" id="status-camera"><span class="spinner"></span>Checking</span>
-            </div>
-
-            <!-- Audio -->
-            <div class="check-row" id="row-audio">
-                <span class="check-icon">🎤</span>
-                <div class="check-info"><strong>Microphone Access</strong><span id="audio-detail">Requesting permission...</span></div>
-                <span class="check-status running" id="status-audio"><span class="spinner"></span>Checking</span>
-            </div>
-
-            <!-- Baseline -->
-            <div class="check-row" id="row-baseline">
-                <span class="check-icon">⌨️</span>
-                <div class="check-info"><strong>Baseline Capture</strong><span id="baseline-detail">Type and move your mouse for 30 seconds to calibrate.</span></div>
-                <span class="check-status" id="status-baseline">Waiting</span>
-                <div class="baseline-wrap" id="baseline-wrap" style="display:none;">
-                    <div class="baseline-bar-bg"><div class="baseline-bar" id="baseline-bar"></div></div>
-                    <div class="baseline-label" id="baseline-label">0 / 30 seconds</div>
-                </div>
+            <!-- Summary after capture -->
+            <div id="baseline-summary">
+                <strong>✅ Baseline Captured</strong><br>
+                <span id="summary-text"></span>
             </div>
         </div>
 
-        <button class="proceed-btn" id="proceedBtn" disabled>
+        <!-- Right: Visualisations -->
+        <div class="bl-card">
+            <h2>📊 Keystroke Rhythm</h2>
+            <canvas id="waveform-canvas"></canvas>
+            <div class="dyn-legend">
+                <span><span class="dyn-dot" style="background:#0078d4;"></span>Dwell (hold)</span>
+                <span><span class="dyn-dot" style="background:#10b981;"></span>Flight (gap)</span>
+            </div>
+            <canvas id="dyn-canvas" style="margin-top:.75rem;"></canvas>
+
+            <h2 style="margin-top:1.25rem;">🖱️ Mouse Heatmap</h2>
+            <canvas id="mouse-canvas"></canvas>
+            <div class="mouse-hint">Move your mouse around naturally. Hot zones are shown in red.</div>
+        </div>
+
+    </div>
+
+    <!-- Progress / Phase bar -->
+    <div class="phase-row">
+        <div class="phase-label">
+            <span id="phase-label-text">⏳ Waiting to start — begin typing to capture baseline</span>
+            <span class="phase-timer" id="phase-timer">0:45</span>
+        </div>
+        <div class="progress-bg">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="phase-chips">
+            <div class="phase-chip" id="chip-typing">⌨️ Keystroke Dynamics</div>
+            <div class="phase-chip" id="chip-speed">⚡ Typing Speed</div>
+            <div class="phase-chip" id="chip-mouse">🖱️ Mouse Patterns</div>
+            <div class="phase-chip" id="chip-dwell">🕐 Dwell / Flight Times</div>
+            <div class="phase-chip" id="chip-upload">☁️ Uploading Profile</div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="bl-footer">
+        <p class="bl-footer-note">
+            🔒 Your baseline profile is used only to detect behavioural anomalies <em>during your exam</em>. It is not shared or stored beyond the session.
+        </p>
+        <button class="ms-btn ms-btn-primary" id="proceed-btn" disabled onclick="proceedToExam()">
             Start Exam →
         </button>
     </div>
 </div>
 
 <script>
-const studentName = sessionStorage.getItem('studentName') || 'Student';
-let checks = { internet: false, camera: false, audio: false, baseline: false };
-let mediaStream = null;
+// ══════════════════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════════════════
+const BASELINE_DURATION = 45;  // seconds
+let   started           = false;
+let   elapsed           = 0;
+let   timerHandle       = null;
+let   baselineDone      = false;
 
-function setCheck(id, state, detail) {
-    const row    = document.getElementById(`row-${id}`);
-    const status = document.getElementById(`status-${id}`);
-    const det    = document.getElementById(`${id}-detail`);
-    row.className    = `check-row ${state}`;
-    status.className = `check-status ${state}`;
-    status.textContent = state === 'pass' ? '✔ Passed' : state === 'fail' ? '✘ Failed' : 'Running...';
-    if (det && detail) det.textContent = detail;
-    checks[id] = state === 'pass';
-    if (Object.values(checks).every(Boolean)) {
-        document.getElementById('proceedBtn').disabled = false;
-    }
+// Signal buckets
+let keyCount   = 0;
+let mouseMoves = 0;
+const dwellTimes  = [];  // ms
+const flightTimes = [];  // ms
+const keyRates    = [];  // keys-per-second samples
+let   mousePoints = [];  // {x,y} normalised to 0-1
+
+// Keystroke dynamics helpers
+const keyDownMap  = {};
+let   lastKeyUp   = null;
+
+// Canvas contexts
+const waveCtx  = document.getElementById('waveform-canvas').getContext('2d');
+const dynCtx   = document.getElementById('dyn-canvas').getContext('2d');
+const mCtx     = document.getElementById('mouse-canvas').getContext('2d');
+
+function resizeCanvases() {
+    ['waveform-canvas','dyn-canvas','mouse-canvas'].forEach(id => {
+        const el = document.getElementById(id);
+        el.width  = el.offsetWidth  * devicePixelRatio;
+        el.height = el.offsetHeight * devicePixelRatio;
+    });
 }
+window.addEventListener('resize', resizeCanvases);
+resizeCanvases();
 
-// 1. Internet check
-async function checkInternet() {
-    try {
-        const t0 = Date.now();
-        await fetch('/api/stats', { cache: 'no-store' });
-        const ms = Date.now() - t0;
-        setCheck('internet', 'pass', `Connection OK — ${ms}ms latency`);
-    } catch {
-        setCheck('internet', 'fail', 'No internet connection detected.');
-    }
-}
+// ══════════════════════════════════════════════════════════════════════════════
+// TYPING CAPTURE
+// ══════════════════════════════════════════════════════════════════════════════
+const ta = document.getElementById('sample-textarea');
 
-// 2. Camera check
-async function checkCamera() {
-    try {
-        mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        setCheck('camera', 'pass', 'Camera access granted.');
-        setCheck('audio', 'pass', 'Microphone access granted.');
-        startBaseline();
-    } catch (e) {
-        setCheck('camera', 'fail', 'Camera permission denied.');
-        setCheck('audio', 'fail', 'Microphone permission denied.');
-    }
-}
-
-// 3. Baseline capture (30 s)
-let keyCount = 0, mouseMoves = 0, baselineTimer = null;
-
-function startBaseline() {
-    const row = document.getElementById('row-baseline');
-    const wrap = document.getElementById('baseline-wrap');
-    const bar  = document.getElementById('baseline-bar');
-    const lbl  = document.getElementById('baseline-label');
-    const st   = document.getElementById('status-baseline');
-
-    row.className = 'check-row running';
-    st.className  = 'check-status running';
-    st.innerHTML  = '<span class="spinner"></span>Capturing';
-    wrap.style.display = 'block';
-
-    document.addEventListener('keydown', () => keyCount++);
-    document.addEventListener('mousemove', () => mouseMoves++);
-
-    let elapsed = 0;
-    const TOTAL = 30;
-    baselineTimer = setInterval(() => {
-        elapsed++;
-        const pct = (elapsed / TOTAL) * 100;
-        bar.style.width = pct + '%';
-        lbl.textContent = `${elapsed} / ${TOTAL} seconds — ${keyCount} keystrokes, ${mouseMoves} mouse moves`;
-
-        if (elapsed >= TOTAL) {
-            clearInterval(baselineTimer);
-            // Save baseline to session
-            sessionStorage.setItem('baseline', JSON.stringify({ keyCount, mouseMoves, duration: TOTAL }));
-            // POST to server
-            fetch('/api/set_baseline', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ student: studentName, keyCount, mouseMoves, duration: TOTAL })
-            }).catch(() => {});
-            setCheck('baseline', 'pass', `Baseline set: ${keyCount} keys, ${mouseMoves} mouse moves in 30s`);
-        }
-    }, 1000);
-}
-
-document.getElementById('proceedBtn').addEventListener('click', () => {
-    if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
-    window.location.href = '/exam';
+ta.addEventListener('keydown', e => {
+    if (!started) startBaseline();
+    const k = e.key;
+    if (!keyDownMap[k]) keyDownMap[k] = performance.now();
 });
 
-// Run checks sequentially
-checkInternet().then(() => checkCamera());
+ta.addEventListener('keyup', e => {
+    const k   = e.key;
+    const now = performance.now();
+    if (keyDownMap[k]) {
+        const dwell  = now - keyDownMap[k];
+        const flight = lastKeyUp !== null ? keyDownMap[k] - lastKeyUp : 0;
+        delete keyDownMap[k];
+        lastKeyUp = now;
+
+        if (dwell > 0 && dwell < 2000) dwellTimes.push(dwell);
+        if (flight > 0 && flight < 3000) flightTimes.push(flight);
+
+        keyCount++;
+        updateMetrics();
+        drawWaveform();
+        drawDynamics();
+    }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MOUSE CAPTURE
+// ══════════════════════════════════════════════════════════════════════════════
+document.addEventListener('mousemove', e => {
+    mouseMoves++;
+    // Normalise to 0-1 relative to viewport
+    mousePoints.push({ x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight });
+    if (mousePoints.length > 1000) mousePoints = mousePoints.slice(-500);
+
+    document.getElementById('mv-mouse').textContent = mouseMoves;
+    drawMouseHeatmap();
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// BASELINE TIMER
+// ══════════════════════════════════════════════════════════════════════════════
+function startBaseline() {
+    if (started || baselineDone) return;
+    started = true;
+    ta.disabled = false;
+
+    setChip('chip-typing', 'active');
+    setChip('chip-speed',  'active');
+    setChip('chip-mouse',  'active');
+    setChip('chip-dwell',  'active');
+
+    document.getElementById('mc-keys').classList.add('active');
+    document.getElementById('mc-speed').classList.add('active');
+    document.getElementById('mc-dwell').classList.add('active');
+    document.getElementById('mc-mouse').classList.add('active');
+
+    timerHandle = setInterval(onTick, 1000);
+}
+
+function onTick() {
+    elapsed++;
+    const remaining = BASELINE_DURATION - elapsed;
+    const pct       = (elapsed / BASELINE_DURATION) * 100;
+
+    // Timer display
+    const mm  = Math.floor(remaining / 60);
+    const ss  = String(remaining % 60).padStart(2, '0');
+    document.getElementById('phase-timer').textContent = `${mm}:${ss}`;
+    document.getElementById('progress-fill').style.width = pct + '%';
+
+    // Key rate sample (keys pressed in this last second)
+    const rate = keyCount / elapsed;
+    keyRates.push(rate);
+    document.getElementById('mv-speed').textContent = rate.toFixed(1);
+    document.getElementById('phase-label-text').textContent =
+        `⌨ Capturing baseline — ${elapsed}s of ${BASELINE_DURATION}s | ${keyCount} keystrokes`;
+
+    if (elapsed >= BASELINE_DURATION) {
+        clearInterval(timerHandle);
+        finishBaseline();
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FINISH
+// ══════════════════════════════════════════════════════════════════════════════
+async function finishBaseline() {
+    baselineDone = true;
+    ta.disabled  = true;
+
+    setChip('chip-typing', 'done');
+    setChip('chip-speed',  'done');
+    setChip('chip-mouse',  'done');
+    setChip('chip-dwell',  'done');
+    setChip('chip-upload', 'active');
+
+    document.getElementById('progress-fill').classList.add('done');
+    document.getElementById('progress-fill').style.width = '100%';
+    document.getElementById('phase-timer').textContent   = '0:00';
+    document.getElementById('phase-label-text').textContent = '✅ Baseline captured — uploading profile…';
+
+    const avgDwell  = dwellTimes.length  ? avg(dwellTimes)  : 0;
+    const stdDwell  = dwellTimes.length  > 1 ? std(dwellTimes)  : 0;
+    const avgFlight = flightTimes.length ? avg(flightTimes) : 0;
+    const stdFlight = flightTimes.length > 1 ? std(flightTimes) : 0;
+    const avgRate   = keyRates.length    ? avg(keyRates.filter(r=>r>0)) : 0;
+
+    const payload = {
+        student:     getStudentName(),
+        keyCount:    keyCount,
+        mouseMoves:  mouseMoves,
+        duration:    BASELINE_DURATION,
+        // Rich dynamics data
+        avgDwell:    round2(avgDwell),
+        stdDwell:    round2(stdDwell),
+        avgFlight:   round2(avgFlight),
+        stdFlight:   round2(stdFlight),
+        avgRate:     round2(avgRate),
+        dwellSamples:  dwellTimes.slice(-50),
+        flightSamples: flightTimes.slice(-50),
+    };
+
+    // Persist locally for exam page reference
+    sessionStorage.setItem('baseline', JSON.stringify(payload));
+
+    try {
+        await fetch('/api/set_baseline', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify(payload)
+        });
+        setChip('chip-upload', 'done');
+    } catch {
+        setChip('chip-upload', 'done'); // non-fatal
+    }
+
+    showSummary(payload);
+    document.getElementById('proceed-btn').disabled = false;
+    document.getElementById('phase-label-text').textContent = '✅ Baseline complete — you may now start the exam.';
+}
+
+function showSummary(p) {
+    const el = document.getElementById('baseline-summary');
+    el.style.display = 'block';
+    document.getElementById('summary-text').innerHTML =
+        `Keystrokes: <strong>${p.keyCount}</strong> &nbsp;|&nbsp; ` +
+        `Speed: <strong>${p.avgRate.toFixed(1)} kps</strong> &nbsp;|&nbsp; ` +
+        `Avg dwell: <strong>${p.avgDwell.toFixed(0)} ms</strong> &nbsp;|&nbsp; ` +
+        `Avg gap: <strong>${p.avgFlight.toFixed(0)} ms</strong> &nbsp;|&nbsp; ` +
+        `Mouse events: <strong>${p.mouseMoves}</strong>`;
+
+    document.getElementById('sample-hint').textContent = '';
+    document.getElementById('mc-keys').classList.replace('active','done');
+    document.getElementById('mc-speed').classList.replace('active','done');
+    document.getElementById('mc-dwell').classList.replace('active','done');
+    document.getElementById('mc-mouse').classList.replace('active','done');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PROCEED
+// ══════════════════════════════════════════════════════════════════════════════
+function proceedToExam() {
+    window.location.href = '/exam';
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// METRICS UPDATE
+// ══════════════════════════════════════════════════════════════════════════════
+function updateMetrics() {
+    document.getElementById('mv-keys').textContent = keyCount;
+    if (dwellTimes.length) {
+        document.getElementById('mv-dwell').textContent = avg(dwellTimes).toFixed(0);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// VISUALISATIONS
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Waveform: dwell bars over the last N keystrokes
+function drawWaveform() {
+    const cv = document.getElementById('waveform-canvas');
+    const W  = cv.width, H = cv.height;
+    waveCtx.clearRect(0, 0, W, H);
+
+    const data   = dwellTimes.slice(-60);
+    if (!data.length) return;
+    const maxVal = Math.max(...data, 300);
+    const bar_w  = W / data.length;
+
+    data.forEach((d, i) => {
+        const h = (d / maxVal) * (H - 10);
+        const x = i * bar_w;
+        const y = H - h;
+        const alpha = 0.4 + 0.6 * (i / data.length);
+        waveCtx.fillStyle = `rgba(0,120,212,${alpha})`;
+        waveCtx.beginPath();
+        waveCtx.roundRect(x + 1, y, bar_w - 2, h, 3);
+        waveCtx.fill();
+    });
+}
+
+// Dynamics: dwell=blue line, flight=green line overlaid
+function drawDynamics() {
+    const cv = document.getElementById('dyn-canvas');
+    const W  = cv.width, H = cv.height;
+    dynCtx.clearRect(0, 0, W, H);
+
+    const drawLine = (data, color) => {
+        if (data.length < 2) return;
+        const maxV = Math.max(...data, 200);
+        dynCtx.beginPath();
+        dynCtx.strokeStyle = color;
+        dynCtx.lineWidth   = 2 * devicePixelRatio;
+        dynCtx.lineJoin    = 'round';
+        data.forEach((v, i) => {
+            const x = (i / (data.length - 1)) * W;
+            const y = H - (v / maxV) * (H - 8);
+            i === 0 ? dynCtx.moveTo(x, y) : dynCtx.lineTo(x, y);
+        });
+        dynCtx.stroke();
+    };
+
+    drawLine(dwellTimes.slice(-80),  '#0078d4');
+    drawLine(flightTimes.slice(-80), '#10b981');
+}
+
+// Mouse heatmap: radial gradient dots
+let heatFrame = null;
+function drawMouseHeatmap() {
+    if (heatFrame) return;
+    heatFrame = requestAnimationFrame(() => {
+        heatFrame = null;
+        const cv = document.getElementById('mouse-canvas');
+        const W  = cv.width, H = cv.height;
+        mCtx.clearRect(0, 0, W, H);
+        mCtx.fillStyle = '#0f172a';
+        mCtx.fillRect(0, 0, W, H);
+
+        const recent = mousePoints.slice(-300);
+        recent.forEach(({ x, y }) => {
+            const px = x * W, py = y * H;
+            const g = mCtx.createRadialGradient(px, py, 0, px, py, 18 * devicePixelRatio);
+            g.addColorStop(0,   'rgba(255,80,30,0.18)');
+            g.addColorStop(0.5, 'rgba(255,120,0,0.06)');
+            g.addColorStop(1,   'rgba(0,0,0,0)');
+            mCtx.fillStyle = g;
+            mCtx.beginPath();
+            mCtx.arc(px, py, 18 * devicePixelRatio, 0, Math.PI * 2);
+            mCtx.fill();
+        });
+    });
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════════════════════
+function setChip(id, cls) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = 'phase-chip ' + cls;
+}
+function avg(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
+function std(arr) {
+    const m = avg(arr);
+    return Math.sqrt(arr.reduce((s, v) => s + (v - m) ** 2, 0) / arr.length);
+}
+function round2(n) { return Math.round(n * 100) / 100; }
+function getStudentName() {
+    return "{{ session.get('username', 'Student') }}";
+}
+
+// Draw empty canvases right away
+drawWaveform();
+drawDynamics();
+drawMouseHeatmap();
 </script>
 </body>
 </html>
