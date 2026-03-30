@@ -70,7 +70,7 @@ def init_db():
                 FOREIGN KEY (session_id) REFERENCES exam_sessions(id)
             );
         """)
-    print("[DB] Database initialized →", DB_PATH)
+    print("[DB] Database initialized ->", DB_PATH)
 
 
 # ── Questions CRUD ─────────────────────────────────────────────────────────────

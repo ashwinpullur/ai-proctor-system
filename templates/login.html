@@ -172,8 +172,12 @@
                     
                     <button type="submit" class="ms-btn ms-btn-primary" style="width: 100%; margin-top: 1rem;" id="submit-btn" onclick="this.innerHTML='Authenticating...';">Sign in as Student</button>
                     
-                    <div style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem;">
-                        <span id="signup-prompt">Need an account? <a href="/student_register" id="signup-link" style="color: var(--ms-blue); font-weight: 600;">Sign up as a Student</a></span>
+                    <div id="student-footer" style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem;">
+                        <span>Need an account? <a href="/student/register" style="color: var(--ms-blue); font-weight: 600;">Sign up as a Student</a></span>
+                    </div>
+                    
+                    <div id="admin-footer" style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem; display: none;">
+                        <span>Need an account? <a href="/admin/register" style="color: var(--ms-blue); font-weight: 600;">Sign up as an Administrator</a></span>
                     </div>
                 </form>
             </div>
@@ -197,8 +201,16 @@
             document.getElementById('tab-admin').classList.toggle('active', role === 'admin');
             
             // Toggle footer content
-            document.getElementById('student-footer').style.display = role === 'student' ? 'block' : 'none';
-            document.getElementById('admin-footer').style.display = role === 'admin' ? 'block' : 'none';
+            const studentFooter = document.getElementById('student-footer');
+            const adminFooter = document.getElementById('admin-footer');
+            if (studentFooter) studentFooter.style.display = role === 'student' ? 'block' : 'none';
+            if (adminFooter) adminFooter.style.display = role === 'admin' ? 'block' : 'none';
+            
+            // Toggle submit button
+            const submitBtn = document.getElementById('submit-btn');
+            if (submitBtn) {
+                submitBtn.innerHTML = role === 'student' ? 'Sign in as Student' : 'Sign in as Administrator';
+            }
         }
     </script>
 </body>
