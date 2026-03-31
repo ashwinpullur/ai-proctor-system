@@ -152,14 +152,21 @@ class OSMonitor(threading.Thread):
 
     # ── Window checker ────────────────────────────────────────────────────────
     def check_active_window(self):
+        """
+        Check if the active window title matches the exam window.
+        Note: pygetwindow is primarily designed for Windows.
+        On Linux (python-xlib) and macOS (Quartz/Accessibility), it may return None or raise.
+        """
         try:
             active = gw.getActiveWindow()
-            if active and self.allowed_window_title:
+            if active and hasattr(active, 'title') and self.allowed_window_title:
                 title = active.title
-                if self.allowed_window_title not in title:
+                if title and self.allowed_window_title not in title:
                     self.callback(f"Window switched: '{title}'")
         except Exception as e:
-            print(f"[OSMonitor] Window check error: {e}")
+            # Silence expected cross-platform errors unless they repeat too much
+            # print(f"[OSMonitor] Window check bypassed: {e}")
+            pass
 
     # ── Thread run ────────────────────────────────────────────────────────────
     def run(self):

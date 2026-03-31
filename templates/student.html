@@ -3,95 +3,265 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Proctor – Student</title>
-    <meta name="description" content="Student exam portal with AI-powered proctoring.">
+    <title>AI Proctor – Student Dashboard</title>
+    <meta name="description" content="Student portal with notifications, hackathons, and queries.">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='fluent.css') }}">
+    <style>
+        .dashboard-body {
+            background-color: var(--ms-off-white);
+            color: #000;
+        }
+        .dash-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2.5rem;
+        }
+        .dash-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            background: var(--ms-white);
+            padding: 1.5rem 2rem;
+            border-radius: var(--ms-radius);
+            box-shadow: var(--ms-shadow);
+            border: 1px solid var(--ms-grey-border);
+        }
+        .dash-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--ms-blue);
+        }
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .dash-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+        .db-card {
+            background: var(--ms-white);
+            border-radius: var(--ms-radius);
+            padding: 2rem;
+            box-shadow: var(--ms-shadow);
+            border: 1px solid var(--ms-grey-border);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .db-card h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            border-bottom: 2px solid var(--ms-grey-light);
+            padding-bottom: 0.5rem;
+        }
+        
+        /* Exam Card Status */
+        .exam-status-box {
+            background: rgba(0, 120, 212, 0.05);
+            border: 1px solid rgba(0, 120, 212, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 1rem;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        
+        /* Hackathons */
+        .hackathon-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+        .hackathon-item {
+            border: 1px solid var(--ms-grey-border);
+            border-radius: 12px;
+            padding: 1rem;
+            background: var(--ms-off-white);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .hackathon-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--ms-shadow-hover);
+            border-color: var(--ms-blue);
+        }
+        .hackathon-item h3 { font-size: 1rem; font-weight: 600; color: var(--ms-blue); margin-bottom: 0.3rem;}
+        .hackathon-item p { font-size: 0.85rem; color: var(--ms-grey-secondary); margin-bottom: 0.8rem;}
+
+        /* Chat System */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 400px;
+            border: 1px solid var(--ms-grey-border);
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--ms-off-white);
+        }
+        .chat-messages {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .chat-bubble {
+            max-width: 80%;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        .bubble-user {
+            background: var(--ms-blue);
+            color: #fff;
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+        .bubble-admin {
+            background: #fff;
+            color: #000;
+            border: 1px solid var(--ms-grey-border);
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+        .chat-time {
+            font-size: 0.7rem;
+            margin-top: 0.3rem;
+            opacity: 0.8;
+            text-align: right;
+        }
+        .chat-input-area {
+            display: flex;
+            padding: 1rem;
+            background: #fff;
+            border-top: 1px solid var(--ms-grey-border);
+            gap: 0.5rem;
+        }
+
+        /* Profile Styles */
+        .profile-img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; background: var(--ms-grey-light); border: 2px solid var(--ms-white); box-shadow: 0 0 0 1px var(--ms-grey-border); }
+        .info-grid { display: grid; grid-template-columns: 1fr; gap: 0.8rem; font-size: 0.9rem; }
+        .info-row { display: flex; justify-content: space-between; padding-bottom: 0.5rem; border-bottom: 1px solid var(--ms-grey-border); }
+        .info-label { color: var(--ms-grey-secondary); font-weight: 600; }
+        .info-val { font-weight: 500; text-align: right; word-break: break-all; }
+        
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; padding: clamp(1rem, 3vw, 2rem); }
+        .modal-content { background: var(--ms-white); width: 100%; max-width: 600px; max-height: 90vh; border-radius: var(--ms-radius); box-shadow: var(--ms-shadow-hover); display: flex; flex-direction: column; overflow: hidden; }
+        .modal-header { padding: 1.5rem; border-bottom: 1px solid var(--ms-grey-border); display: flex; justify-content: space-between; align-items: center; background: var(--ms-grey-light); }
+        .modal-body { padding: clamp(1rem, 3vw, 2rem); overflow-y: auto; flex: 1; display:flex; flex-direction: column; gap: 1rem; }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .dash-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 600px) {
+            .status-boxes { flex-direction: column !important; }
+            .chat-input-area { flex-direction: column; }
+        }
+    </style>
 </head>
-<body>
+<body class="dashboard-body">
 
-<!-- ===== PERMISSION / RULES SCREEN ===== -->
-<div id="permission-screen" class="overlay-screen">
-    <div class="permission-card">
-        <div class="perm-icon">🎓</div>
-        <h1>AI Proctor System</h1>
-        <p class="perm-subtitle">Read the exam rules carefully and grant the required permissions before proceeding.</p>
-
-        <div class="rules-box">
-            <h3>📋 Exam Rules &amp; Detection Criteria</h3>
-            <ul class="rules-list">
-                <li><span class="rule-icon">👁️</span><div><strong>Face Detection</strong><span>Your face must remain visible. &gt;2 s absence triggers an alert.</span></div></li>
-                <li><span class="rule-icon">👥</span><div><strong>Multiple Persons</strong><span>Only one person is allowed in the camera frame at all times.</span></div></li>
-                <li><span class="rule-icon">👀</span><div><strong>Gaze Monitoring</strong><span>Looking away for &gt;2 s is flagged as suspicious. Stay focused.</span></div></li>
-                <li><span class="rule-icon">📱</span><div><strong>Phone Detection</strong><span>Mobile phones or devices visible in the frame will be flagged automatically.</span></div></li>
-                <li><span class="rule-icon">🔊</span><div><strong>Audio Monitoring</strong><span>Sustained loud sound or talking for &gt;2 s will be logged.</span></div></li>
-                <li><span class="rule-icon">🖥️</span><div><strong>Window Switching</strong><span>Switching to another application will be detected and logged.</span></div></li>
-                <li><span class="rule-icon">⌨️</span><div><strong>Baseline Keystroke</strong><span>Your typing speed is calibrated for 30 s; significant deviations are flagged.</span></div></li>
-                <li><span class="rule-icon">🚨</span><div><strong>Auto-Stop</strong><span>The exam auto-stops after 10 violations. Evidence screenshots are saved.</span></div></li>
-            </ul>
-        </div>
-
-        <div class="perm-status-box">
-            <div class="perm-item" id="perm-cam"><span class="perm-dot pending"></span><span>Camera</span><span class="perm-label">Pending</span></div>
-            <div class="perm-item" id="perm-mic"><span class="perm-dot pending"></span><span>Microphone</span><span class="perm-label">Pending</span></div>
-        </div>
-        <p id="perm-error" class="perm-error" style="display:none;"></p>
-        <div class="perm-actions">
-            <button id="grantPermBtn" class="btn btn-primary btn-large">🔐 Grant Permissions &amp; Continue</button>
-        </div>
-    </div>
-</div>
-
-<!-- ===== STUDENT DASHBOARD ===== -->
-<div id="dashboard" class="dashboard-container" style="display:none;">
-    <header class="dashboard-header">
-        <div class="header-content">
-            <div class="logo"><span class="pulse-dot"></span><h1>AI Proctor — Student View</h1></div>
-            <div style="display:flex;gap:1rem;align-items:center;">
-                <div id="system-status" class="status-badge">System Standby</div>
-                <a href="/admin" class="btn-link">Admin →</a>
-            </div>
+<div class="dash-container">
+    <header class="dash-header">
+        <h1>Welcome, {{ session.get('username') }}</h1>
+        <div class="user-badge">
+            <span style="font-size: 0.9rem; font-weight: 600; color: var(--ms-grey-secondary);">Student Portal</span>
+            <a href="/logout" class="ms-btn ms-btn-secondary" style="padding: 0.4rem 1rem; font-size: 0.85rem;">Logout</a>
         </div>
     </header>
 
-    <div class="main-grid">
-        <!-- Video -->
-        <div class="video-section card">
-            <div class="card-header">
-                <h2>📹 Live Feed</h2>
-                <span class="badge-live">LIVE</span>
+    <div class="dash-grid">
+        <!-- Main Column -->
+        <div style="display: flex; flex-direction: column; gap: 2rem;">
+            
+            <!-- Exam Status Card -->
+            <div class="db-card">
+                <h2>🎓 Assessment Center</h2>
+                <div class="exam-status-box" id="exam-status-container">
+                    <div class="status-pill" style="background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid rgba(16,185,129,0.3);">🟢 System Online</div>
+                    <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem;">AI Proctoring Examination</h3>
+                    <p style="color: var(--ms-grey-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">Please secure your environment before proceeding to the pre-exam verification checks.</p>
+                    <a href="/check" class="ms-btn ms-btn-primary" style="padding: 1rem 3rem; font-size: 1.05rem; display: inline-block;">Proceed to Exam Verification</a>
+                </div>
+
+                <div class="status-boxes" style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <div class="exam-status-box" style="flex:1; background: #fff; padding: 1rem;">
+                        <span id="key-status-icon" style="font-size: 1.5rem; display:block; margin-bottom: 0.5rem;">⏳</span>
+                        <h4 style="font-size: 0.95rem; margin-bottom: 0.2rem;">Exam Key</h4>
+                        <p id="key-status-text" style="font-size: 0.8rem; color: var(--ms-grey-secondary);">Not available</p>
+                    </div>
+                    <div class="exam-status-box" style="flex:1; background: #fff; padding: 1rem;">
+                        <span id="results-status-icon" style="font-size: 1.5rem; display:block; margin-bottom: 0.5rem;">⏳</span>
+                        <h4 style="font-size: 0.95rem; margin-bottom: 0.2rem;">Exam Results</h4>
+                        <p id="results-status-text" style="font-size: 0.8rem; color: var(--ms-grey-secondary);">Pending declaration</p>
+                    </div>
+                </div>
             </div>
-            <div class="video-container">
-                <img src="{{ url_for('video_feed') }}" alt="Live Camera" id="video-feed-img">
-                <div class="recording-indicator"><span class="rec-dot"></span> REC</div>
+
+            <!-- Queries Space -->
+            <div class="db-card">
+                <h2>💬 Query / Admin Chat</h2>
+                <p style="font-size: 0.85rem; color: var(--ms-grey-secondary); margin-top: -1rem;">Have an issue or doubt? Ask the administrator.</p>
+                <div class="chat-container">
+                    <div class="chat-messages" id="chat-box">
+                        <div style="text-align:center; color: var(--ms-grey-secondary); font-size: 0.85rem; margin-top: 2rem;">Loading messages...</div>
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" id="chat-input" class="ms-input" style="flex:1;" placeholder="Type your query...">
+                        <button class="ms-btn ms-btn-primary" onclick="sendMessage()">Send</button>
+                    </div>
+                </div>
             </div>
-            <div class="controls mt-4">
-                <button id="startBtn" class="btn btn-primary">▶ Start Exam</button>
-                <button id="endBtn"   class="btn btn-danger"  disabled>■ End Exam</button>
-            </div>
+
         </div>
 
-        <!-- Stats + Log -->
-        <div class="stats-section">
-            <div class="stats-grid">
-                <div class="stat-card card"><h3>Warnings</h3><div class="stat-value warning-text" id="warning-count">0</div></div>
-                <div class="stat-card card"><h3>Vision Status</h3><div class="stat-value text-success" id="vision-status">Standby</div></div>
-                <div class="stat-card card span-2"><h3>Audio / OS Monitoring</h3><div class="stat-value text-secondary" id="audio-os-status">Off</div></div>
-            </div>
-
-            <div id="autostop-banner" class="autostop-banner" style="display:none;">
-                🚨 Exam auto-stopped due to excessive violations.
-            </div>
-
-            <div class="log-section card">
-                <div class="card-header">
-                    <h2>📜 Event Log</h2>
-                    <button class="btn-icon" id="clearLog" title="Clear">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/></svg>
-                    </button>
+        <!-- Sidebar Column -->
+        <div style="display: flex; flex-direction: column; gap: 2rem;">
+            <!-- Profile Card -->
+            <div class="db-card">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <h2>👤 My Profile</h2>
+                    <button class="ms-btn ms-btn-secondary" style="padding: 0.3rem 0.8rem; font-size:0.8rem;" onclick="openProfileModal()">Edit</button>
                 </div>
-                <div class="log-container" id="event-log">
-                    <div class="log-entry info-msg"><span class="log-time">Now</span><span class="log-text">System initialized.</span></div>
+                <div style="display:flex; flex-direction:column; align-items:center; margin-bottom: 1rem;">
+                    <img id="prof-img" src="" alt="Profile Image" class="profile-img">
+                    <h3 id="prof-name" style="margin-top: 0.5rem; font-size: 1.1rem;">Loading...</h3>
+                    <span id="prof-student-id" style="font-size:0.85rem; color: var(--ms-grey-secondary);"></span>
+                </div>
+                <div class="info-grid">
+                    <div class="info-row"><span class="info-label">Email</span><span class="info-val" id="prof-email">—</span></div>
+                    <div class="info-row"><span class="info-label">Phone</span><span class="info-val" id="prof-phone">—</span></div>
+                    <div class="info-row"><span class="info-label">Year</span><span class="info-val" id="prof-year">—</span></div>
+                    <div class="info-row"><span class="info-label">Current GPA</span><span class="info-val" id="prof-gpa">—</span></div>
+                    <div class="info-row" style="border:none;"><span class="info-label">Resume</span><span class="info-val" id="prof-resume">—</span></div>
+                </div>
+            </div>
+
+            <!-- Hackathons Center -->
+            <div class="db-card">
+                <h2>🚀 Upcoming Hackathons</h2>
+                <div class="hackathon-list" id="hackathon-list">
+                    <div style="text-align:center; color: var(--ms-grey-secondary); padding: 2rem 0; font-size: 0.85rem;">Checking for events...</div>
                 </div>
             </div>
         </div>
@@ -99,195 +269,196 @@
 </div>
 
 <script>
-// ===== PERMISSION FLOW =====
-const permScreen = document.getElementById('permission-screen');
-const dashboard  = document.getElementById('dashboard');
-const grantBtn   = document.getElementById('grantPermBtn');
-const permError  = document.getElementById('perm-error');
+    // Load Exam Meta (Key / Results)
+    async function fetchExamMeta() {
+        try {
+            const res = await fetch('/api/exam_meta');
+            const data = await res.json();
+            
+            const ksIcon = document.getElementById('key-status-icon');
+            const ksText = document.getElementById('key-status-text');
+            if (data.key_uploaded) {
+                ksIcon.textContent = '✅';
+                ksText.textContent = 'Key Released!';
+                ksText.style.color = 'var(--ms-success)';
+            } else {
+                ksIcon.textContent = '⏳';
+                ksText.textContent = 'Not yet released';
+                ksText.style.color = 'var(--ms-grey-secondary)';
+            }
 
-function setPermStatus(id, state) {
-    const el = document.getElementById(id);
-    el.querySelector('.perm-dot').className  = `perm-dot ${state}`;
-    el.querySelector('.perm-label').textContent = state === 'granted' ? '✔ Granted' : state === 'denied' ? '✘ Denied' : 'Pending';
-}
-
-grantBtn.addEventListener('click', async () => {
-    grantBtn.disabled = true;
-    grantBtn.textContent = 'Requesting…';
-    permError.style.display = 'none';
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        setPermStatus('perm-cam', 'granted');
-        setPermStatus('perm-mic', 'granted');
-        stream.getTracks().forEach(t => t.stop());
-        setTimeout(() => {
-            permScreen.style.opacity = '0';
-            permScreen.style.transition = 'opacity 0.5s ease';
-            setTimeout(() => { permScreen.style.display = 'none'; dashboard.style.display = 'block'; }, 500);
-        }, 700);
-    } catch {
-        setPermStatus('perm-cam', 'denied');
-        setPermStatus('perm-mic', 'denied');
-        permError.textContent = '⚠ Permission denied. Allow camera & microphone in browser settings and reload.';
-        permError.style.display = 'block';
-        grantBtn.disabled = false;
-        grantBtn.textContent = '🔐 Retry';
+            const rsIcon = document.getElementById('results-status-icon');
+            const rsText = document.getElementById('results-status-text');
+            if (data.results_released) {
+                rsIcon.textContent = '🏆';
+                rsText.innerHTML = '<a href="/results" style="color:var(--ms-blue);text-decoration:underline;">View Results</a>';
+            } else {
+                rsIcon.textContent = '⏳';
+                rsText.textContent = 'Pending declaration';
+                rsText.style.color = 'var(--ms-grey-secondary)';
+            }
+        } catch(e) { console.error(e); }
     }
-});
 
-// ===== DASHBOARD =====
-let seenEvents = new Set(), isExamActive = false, wasActive = false;
+    // Load Hackathons
+    async function fetchHackathons() {
+        try {
+            const res = await fetch('/api/hackathons');
+            const data = await res.json();
+            const list = document.getElementById('hackathon-list');
+            
+            if (data.length === 0) {
+                list.innerHTML = '<div style="text-align:center; color: var(--ms-grey-secondary); padding: 2rem 0; font-size: 0.85rem;">No hackathons right now.</div>';
+                return;
+            }
 
-const startBtn      = document.getElementById('startBtn');
-const endBtn        = document.getElementById('endBtn');
-const eventLog      = document.getElementById('event-log');
-const warningCount  = document.getElementById('warning-count');
-const visionStatus  = document.getElementById('vision-status');
-const audioOsStatus = document.getElementById('audio-os-status');
-const systemStatus  = document.getElementById('system-status');
-const autostopBanner = document.getElementById('autostop-banner');
-
-startBtn.addEventListener('click', () => {
-    isExamActive = true; wasActive = true;
-    startBtn.disabled = true; endBtn.disabled = false;
-    autostopBanner.style.display = 'none';
-    fetch('/api/control', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'start'}) });
-    addLogEntry('Exam session started.', 'info');
-});
-
-endBtn.addEventListener('click', () => {
-    isExamActive = false;
-    startBtn.disabled = false; endBtn.disabled = true;
-    fetch('/api/control', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'stop'}) });
-    addLogEntry('Exam session ended.', 'info');
-});
-
-document.getElementById('clearLog').addEventListener('click', () => {
-    eventLog.innerHTML = '<div class="log-entry info-msg"><span class="log-time">Now</span><span class="log-text">Logs cleared.</span></div>';
-    seenEvents.clear();
-});
-
-function addLogEntry(text, type = 'warning') {
-    const e = document.createElement('div');
-    e.className = `log-entry ${type}-msg slide-in`;
-    e.innerHTML = `<span class="log-time">${new Date().toLocaleTimeString([],{hour12:false})}</span><span class="log-text">${text}</span>`;
-    eventLog.insertBefore(e, eventLog.firstChild);
-    setTimeout(() => e.classList.remove('slide-in'), 300);
-}
-
-setInterval(() => {
-    fetch('/api/stats').then(r => r.json()).then(data => {
-        warningCount.textContent = data.warnings;
-        warningCount.classList.toggle('pulse-warning', data.warnings > 0);
-
-        visionStatus.textContent = data.vision_status || 'Standby';
-        visionStatus.className = (data.vision_status||'').includes('⚠') ? 'stat-value text-warning'
-                                : data.vision_status === 'Normal'        ? 'stat-value text-success'
-                                                                         : 'stat-value text-secondary';
-
-        const mon = data.audio_status === 'Active' && data.os_status === 'Active';
-        audioOsStatus.textContent = mon ? 'All Systems Active' : 'Monitoring Off';
-        audioOsStatus.className   = mon ? 'stat-value text-success' : 'stat-value text-secondary';
-
-        // Auto-stop detection
-        if (wasActive && !data.is_active && isExamActive) {
-            isExamActive = false;
-            startBtn.disabled = false; endBtn.disabled = true;
-            autostopBanner.style.display = 'flex';
-            addLogEntry('🚨 Exam auto-stopped by system.', 'warning');
-        }
-        isExamActive = data.is_active;
-
-        systemStatus.textContent = isExamActive ? 'Proctoring Active' : 'System Standby';
-        systemStatus.className   = isExamActive ? 'status-badge active' : 'status-badge';
-
-        (data.events||[]).forEach(ev => {
-            const id = `${ev.timestamp}-${ev.msg}`;
-            if (!seenEvents.has(id)) { seenEvents.add(id); addLogEntry(ev.msg, 'warning'); }
-        });
-    }).catch(() => {});
-}, 1000);
-
-// ===== TAB / WINDOW SWITCH DETECTION =====
-let tabSwitchCount = 0;
-
-function reportBrowserEvent(msg) {
-    if (!isExamActive) return;
-    addLogEntry(`⚠ ${msg}`, 'warning');
-    fetch('/api/report_event', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ msg })
-    }).then(r => r.json()).then(resp => {
-        if (resp.status === 'stopped') {
-            // Server stopped the exam -> update UI
-            isExamActive = false;
-            startBtn.disabled = false;
-            endBtn.disabled = true;
-            showTabViolationOverlay(msg);
-        }
-    }).catch(() => {});
-}
-
-function showTabViolationOverlay(msg) {
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-        position:fixed;inset:0;z-index:99999;
-        background:rgba(8,10,18,0.97);
-        display:flex;flex-direction:column;
-        align-items:center;justify-content:center;gap:1.5rem;
-        font-family:Inter,sans-serif;
-    `;
-    overlay.innerHTML = `
-        <div style="font-size:4rem;">🚫</div>
-        <h2 style="color:#f43f5e;font-size:1.75rem;font-weight:800;text-align:center;">Exam Terminated</h2>
-        <p style="color:#94a3b8;font-size:1rem;text-align:center;max-width:480px;line-height:1.6;">
-            ${msg}<br><strong style="color:#f8fafc;">Your exam has been stopped and the incident has been reported to the admin.</strong>
-        </p>
-        <div style="background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2);
-                    border-radius:12px;padding:0.85rem 1.5rem;color:#f43f5e;font-size:0.875rem;font-weight:600;">
-            🔴 Tab/Window Switch Detected — Violation Logged
-        </div>`;
-    document.body.appendChild(overlay);
-    // Disable start button permanently for this session
-    startBtn.disabled = true;
-    autostopBanner.style.display = 'flex';
-}
-
-// Page Visibility API — fires when tab is hidden (switch to another tab)
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden && isExamActive) {
-        tabSwitchCount++;
-        reportBrowserEvent(`Tab switched away (violation #${tabSwitchCount})`);
+            list.innerHTML = data.map(h => `
+                <div class="hackathon-item">
+                    <h3>${h.title}</h3>
+                    <p>${h.description}</p>
+                    <a href="${h.link}" target="_blank" class="ms-btn ms-btn-primary" style="padding: 0.4rem 1rem; font-size: 0.8rem; display:inline-block;">View / Register</a>
+                </div>
+            `).join('');
+        } catch(e) { console.error(e); }
     }
-});
 
-// Window blur — fires when browser window loses focus (Alt+Tab, clicking outside)
-let blurTimeout = null;
-window.addEventListener('blur', () => {
-    if (!isExamActive) return;
-    // Small delay to avoid false positives (e.g. file dialog opening)
-    blurTimeout = setTimeout(() => {
-        tabSwitchCount++;
-        reportBrowserEvent(`Browser window lost focus (violation #${tabSwitchCount})`);
-    }, 500);
-});
+    // Load Queries
+    async function fetchQueries() {
+        try {
+            const res = await fetch('/api/queries');
+            const data = await res.json();
+            const box = document.getElementById('chat-box');
+            
+            if (data.length === 0) {
+                box.innerHTML = '<div style="text-align:center; color: var(--ms-grey-secondary); font-size: 0.85rem; margin-top: 2rem;">No messages yet. Send a query below!</div>';
+                return;
+            }
 
-window.addEventListener('focus', () => {
-    if (blurTimeout) { clearTimeout(blurTimeout); blurTimeout = null; }
-});
+            box.innerHTML = data.map(q => `
+                <div class="chat-bubble bubble-user">
+                    <div>${q.message}</div>
+                    <div class="chat-time">${new Date(q.timestamp * 1000).toLocaleString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                </div>
+                ${q.admin_reply ? `
+                <div class="chat-bubble bubble-admin">
+                    <div style="font-weight:700; font-size:0.75rem; color: var(--ms-grey-secondary); margin-bottom: 0.2rem;">Admin Reply</div>
+                    <div>${q.admin_reply}</div>
+                </div>` : ''}
+            `).join('');
+            box.scrollTop = box.scrollHeight;
+        } catch(e) { console.error(e); }
+    }
 
-// Prevent right-click and keyboard shortcuts during exam
-document.addEventListener('contextmenu', e => { if (isExamActive) e.preventDefault(); });
-document.addEventListener('keydown', e => {
-    if (!isExamActive) return;
-    // Block Ctrl+W, Ctrl+T, Ctrl+N, Alt+Tab variants
-    if ((e.ctrlKey && ['w','t','n'].includes(e.key.toLowerCase())) ||
-        (e.altKey && e.key === 'Tab')) {
+    async function sendMessage() {
+        const inp = document.getElementById('chat-input');
+        const msg = inp.value.trim();
+        if (!msg) return;
+        
+        inp.disabled = true;
+        try {
+            await fetch('/api/queries', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: msg})
+            });
+            inp.value = '';
+            await fetchQueries();
+        } catch(e) { console.error(e); }
+        inp.disabled = false;
+        inp.focus();
+    }
+
+    // Load Profile
+    async function fetchProfile() {
+        try {
+            const res = await fetch('/api/student/profile');
+            const data = await res.json();
+            document.getElementById('prof-name').textContent = data.full_name || data.username;
+            document.getElementById('prof-student-id').textContent = data.student_id ? `ID: ${data.student_id}` : '';
+            document.getElementById('prof-email').textContent = data.email || '—';
+            document.getElementById('prof-phone').textContent = data.phone || '—';
+            document.getElementById('prof-year').textContent = data.year_category || '—';
+            document.getElementById('prof-gpa').textContent = data.gpa ? parseFloat(data.gpa).toFixed(2) : '—';
+            
+            document.getElementById('prof-img').src = data.profile_image ? `/${data.profile_image}` : 'https://via.placeholder.com/80?text=User';
+            document.getElementById('prof-resume').innerHTML = data.resume ? `<a href="/${data.resume}" target="_blank" style="color:var(--ms-blue);">View PDF</a>` : '—';
+            
+            // Populate form
+            document.getElementById('p-fullname').value = data.full_name || '';
+            document.getElementById('p-email').value = data.email || '';
+            document.getElementById('p-phone').value = data.phone || '';
+            document.getElementById('p-gpa').value = data.gpa || '';
+        } catch(e) { console.error(e); }
+    }
+
+    function openProfileModal() {
+        document.getElementById('profile-modal').style.display = 'flex';
+    }
+
+    function closeProfileModal() {
+        document.getElementById('profile-modal').style.display = 'none';
+    }
+
+    async function submitProfile(e) {
         e.preventDefault();
-        reportBrowserEvent(`Blocked shortcut: ${e.ctrlKey?'Ctrl':'Alt'}+${e.key}`);
+        const btn = document.getElementById('profBtn');
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+        
+        try {
+            const formObj = new FormData(document.getElementById('profile-form'));
+            await fetch('/api/student/profile', { method: 'POST', body: formObj });
+            closeProfileModal();
+            fetchProfile();
+        } catch(err) {
+            console.error(err);
+            alert("Failed to update profile.");
+        }
+        btn.disabled = false;
+        btn.textContent = 'Save Changes';
     }
-});
+
+    document.getElementById('chat-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') sendMessage();
+    });
+
+    // Initial loads
+    fetchExamMeta();
+    fetchHackathons();
+    fetchQueries();
+    fetchProfile();
+
+    // Poll for updates
+    setInterval(() => {
+        fetchExamMeta();
+        fetchQueries();
+    }, 15000); // 15s polling for updates in dashboard
 </script>
+
+<!-- Edit Profile Modal -->
+<div class="modal-overlay" id="profile-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 style="margin:0; font-size:1.25rem;">Edit Profile</h2>
+            <button onclick="closeProfileModal()" style="background:transparent;border:none;font-size:1.2rem;cursor:pointer;">✕</button>
+        </div>
+        <form id="profile-form" onsubmit="submitProfile(event)" class="modal-body">
+            <div><label style="font-size:0.85rem;font-weight:600;">Full Name</label><input type="text" id="p-fullname" name="full_name" class="ms-input" style="margin-bottom:0;margin-top:0.3rem"></div>
+            <div><label style="font-size:0.85rem;font-weight:600;">Email Address</label><input type="email" id="p-email" name="email" class="ms-input" style="margin-bottom:0;margin-top:0.3rem"></div>
+            <div style="display:flex;gap:1rem;">
+                <div style="flex:1"><label style="font-size:0.85rem;font-weight:600;">Phone Number</label><input type="text" id="p-phone" name="phone" class="ms-input" style="margin-bottom:0;margin-top:0.3rem"></div>
+                <div style="flex:1"><label style="font-size:0.85rem;font-weight:600;">GPA Points</label><input type="number" step="0.01" id="p-gpa" name="gpa" class="ms-input" style="margin-bottom:0;margin-top:0.3rem"></div>
+            </div>
+            <div><label style="font-size:0.85rem;font-weight:600;">Profile Image (max 2MB)</label><input type="file" name="profile_image" accept="image/*" class="ms-input" style="margin-bottom:0;margin-top:0.3rem;padding:0.5rem"></div>
+            <div><label style="font-size:0.85rem;font-weight:600;">Resume Upload (PDF/DOC)</label><input type="file" name="resume" accept=".pdf,.doc,.docx" class="ms-input" style="margin-bottom:0;margin-top:0.3rem;padding:0.5rem"></div>
+            
+            <div style="display:flex;justify-content:flex-end;gap:1rem;margin-top:1rem;">
+                <button type="button" class="ms-btn ms-btn-secondary" onclick="closeProfileModal()">Cancel</button>
+                <button type="submit" class="ms-btn ms-btn-primary" id="profBtn">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 </body>
 </html>

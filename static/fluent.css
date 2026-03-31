@@ -32,16 +32,17 @@ body {
 
 /* Layout Utilities */
 .container {
-    max-width: 1200px;
+    width: 100%;
+    max-width: 1600px;
     margin: 0 auto;
-    padding: 0 2rem;
+    padding: 0 clamp(1rem, 4vw, 3rem);
 }
 
 .ms-card {
     background: var(--ms-white);
     border: 1px solid var(--ms-grey-border);
     border-radius: var(--ms-radius);
-    padding: 2rem;
+    padding: clamp(1.2rem, 3vw, 2.5rem);
     box-shadow: var(--ms-shadow);
     transition: box-shadow 0.2s ease-in-out;
 }
@@ -56,9 +57,9 @@ h1, h2, h3, h4 {
     color: #1b1b1b;
 }
 
-h1 { font-size: 2.25rem; margin-bottom: 1.5rem; }
-h2 { font-size: 1.75rem; margin-bottom: 1rem; }
-p { margin-bottom: 1rem; color: var(--ms-grey-secondary); }
+h1 { font-size: clamp(1.75rem, 3vw, 2.75rem); margin-bottom: 1.5rem; }
+h2 { font-size: clamp(1.4rem, 2.5vw, 2rem); margin-bottom: 1rem; }
+p { margin-bottom: 1rem; color: var(--ms-grey-secondary); font-size: clamp(0.9rem, 1.5vw, 1.05rem); }
 
 /* Buttons */
 .ms-btn {
@@ -154,4 +155,29 @@ p { margin-bottom: 1rem; color: var(--ms-grey-secondary); }
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 2rem;
+}
+
+/* ── Mobile & Tablet Responsiveness ───────────────────────────────────────── */
+@media (max-width: 900px) {
+    .container {
+        padding: 0 1.25rem;
+    }
+    
+    h1 { font-size: 1.75rem; }
+    h2 { font-size: 1.4rem; }
+    
+    .ms-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .ms-card {
+        padding: 1.25rem;
+    }
+    
+    .ms-btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
 }

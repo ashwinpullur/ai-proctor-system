@@ -83,6 +83,8 @@
             <a href="#" class="nav-item" onclick="switchSection('questions', this); loadAdminQuestions();">📝 Question Bank</a>
             <a href="#" class="nav-item" onclick="switchSection('schedules', this)">📅 Manage Schedules</a>
             <a href="#" class="nav-item" onclick="switchSection('students', this); loadStudents();">👥 Students</a>
+            <a href="#" class="nav-item" onclick="switchSection('hackathons', this); loadHackathons();">🏆 Hackathons</a>
+            <a href="#" class="nav-item" onclick="switchSection('queries', this); loadQueries();">💬 Chat / Queries</a>
             <a href="#" class="nav-item" onclick="switchSection('settings', this)">⚙️ Settings</a>
         </nav>
 
@@ -111,8 +113,8 @@
                 <div class="kpi-card"><div class="label">Status</div><div class="value" style="font-size: 1.2rem;" id="kpi-vision">Connected</div></div>
             </div>
 
-            <div class="ms-grid" style="grid-template-columns: 2fr 1fr;">
-                <div class="ms-card">
+            <div class="ms-grid dash-flex" style="display:flex; flex-wrap:wrap; gap:2rem;">
+                <div class="ms-card" style="flex:2; min-width:300px;">
                     <div class="section-header"><h3>Recent Assessments</h3></div>
                     <table class="ms-table">
                         <thead>
@@ -130,21 +132,23 @@
                     </table>
                 </div>
 
-                <div class="ms-card" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <div class="ms-card" style="display: flex; flex-direction: column; gap: 1.5rem; flex:1; min-width:300px;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <h3>Live Monitor</h3>
-                        <select id="student-monitor-select" class="ms-select" style="width:160px; padding:4px; border-radius:4px; font-size:0.85rem;" onchange="updateMonitorStream()">
-                            <option value="">-- No Student --</option>
-                        </select>
+                        <h3>Top Rankers</h3>
                     </div>
-                    <div style="background: #000; aspect-ratio: 4/3; border-radius: 4px; overflow: hidden; position: relative; display:flex; align-items:center; justify-content:center;">
-                        <img id="admin-video-feed" src="" style="width: 100%; height: 100%; object-fit: cover; display:none;">
-                        <div id="no-feed-placeholder" style="color:#64748b; font-size:0.8rem;">Select student for live feed</div>
-                        <div class="status-badge-live" id="live-indicator" style="position: absolute; top: 10px; right: 10px; display:none;">LIVE</div>
-                    </div>
-                    <div style="flex: 1; border: 1px solid var(--ms-grey-border); padding: 1rem; border-radius: 4px; background: var(--ms-grey-light); font-family: monospace; font-size: 0.8rem; overflow-y: auto; max-height: 200px;" id="admin-log">
-                        Admin initializing...
-                    </div>
+                    <table class="ms-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Student</th>
+                                <th>Year</th>
+                                <th>Marks</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rankers-tbody">
+                            <tr><td colspan="4" style="text-align: center; color: var(--ms-grey-secondary);">Syncing...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -167,8 +171,13 @@
             <!-- MANAGE SCHEDULES SECTION -->
             <section id="sec-schedules" class="admin-section" style="display:none;">
                 <div class="section-header">
-                    <h2>Exam Schedules</h2>
-                    <button class="ms-btn ms-btn-primary" onclick="openScheduleModal()">+ New Schedule</button>
+                    <h2>Exam Configuration</h2>
+                </div>
+                <!-- Exam Meta Controls -->
+                <div class="ms-card" style="margin-bottom: 2rem; display: flex; gap: 1rem; align-items: center;">
+                    <button class="ms-btn ms-btn-primary" id="btn-upload-key" onclick="toggleExamMeta('key')">📤 Upload Exam Key</button>
+                    <button class="ms-btn ms-btn-secondary" id="btn-release-results" onclick="toggleExamMeta('results')">✅ Release Results</button>
+                    <span id="exam-meta-status" style="margin-left:auto; font-size: 0.85rem; color: var(--ms-grey-secondary);">Loading status...</span>
                 </div>
                 <div class="ms-card">
                     <table class="ms-table">
@@ -237,12 +246,76 @@
                         <thead>
                             <tr>
                                 <th>Username</th>
-                                <th>Role</th>
+                                <th>Student ID</th>
+                                <th>Year</th>
+                                <th>Marks</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="students-tbody">
                             <tr><td colspan="3" style="text-align: center;">Loading students...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- EDIT STUDENT MODAL -->
+            <div class="modal-overlay" id="edit-student-modal" style="z-index: 2000;">
+                <div class="modal-content" style="max-width: 400px;">
+                    <div class="modal-header">
+                        <h2 style="margin: 0; font-size: 1.15rem;">Edit Student Record</h2>
+                        <button class="ms-btn ms-btn-secondary" onclick="closeEditModal()" style="border:none;background:transparent;padding:0;cursor:pointer;">✕</button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="es-username">
+                        <div style="margin-bottom: 1rem;"><label style="font-size: .85rem;">Student ID</label><input type="text" id="es-id" class="ms-input" style="width:100%"></div>
+                        <div style="margin-bottom: 1rem;"><label style="font-size: .85rem;">Year Level</label><input type="text" id="es-year" class="ms-input" placeholder="e.g. 1st Year" style="width:100%"></div>
+                        <div style="margin-bottom: 1.5rem;"><label style="font-size: .85rem;">Marks</label><input type="number" id="es-marks" class="ms-input" style="width:100%"></div>
+                        <button class="ms-btn ms-btn-primary" style="width:100%" onclick="saveStudent()">Save Changes</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HACKATHONS SECTION -->
+            <section id="sec-hackathons" class="admin-section" style="display:none;">
+                <div class="section-header">
+                    <h2>Hackathon Management</h2>
+                </div>
+                <!-- Add Form -->
+                <div class="ms-card" style="margin-bottom: 2rem;">
+                    <h3 style="margin-bottom: 1rem;">Post a New Hackathon</h3>
+                    <div style="display: flex; gap: 1rem; align-items: flex-start; flex-wrap: wrap;">
+                        <input type="text" id="h-title" class="ms-input" style="flex: 1;" placeholder="Hackathon Title">
+                        <input type="text" id="h-link" class="ms-input" style="flex: 1;" placeholder="Registration Link">
+                    </div>
+                    <textarea id="h-desc" class="ms-input" style="width: 100%; margin-top: 1rem; resize: vertical;" rows="3" placeholder="Description / Details"></textarea>
+                    <button class="ms-btn ms-btn-primary" style="margin-top: 1rem;" onclick="addHackathon()">Submit Hackathon</button>
+                    <span id="h-msg" style="margin-left: 1rem; font-size: 0.85rem;"></span>
+                </div>
+                <!-- Hackathons List -->
+                <div class="ms-card">
+                    <table class="ms-table">
+                        <thead>
+                            <tr><th>Title</th><th>Link</th><th>Description</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody id="hackathons-tbody"><tr><td colspan="4" style="text-align: center;">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- QUERIES / CHAT SECTION -->
+            <section id="sec-queries" class="admin-section" style="display:none;">
+                <div class="section-header">
+                    <h2>Student Queries</h2>
+                    <button class="ms-btn ms-btn-secondary" onclick="loadQueries()">↻ Refresh</button>
+                </div>
+                <div class="ms-card" style="padding: 0;">
+                    <table class="ms-table" style="border: none;">
+                        <thead>
+                            <tr><th style="width:15%">Student</th><th style="width:40%">Message</th><th style="width:30%">Admin Reply</th><th style="width:15%">Action</th></tr>
+                        </thead>
+                        <tbody id="queries-tbody">
+                            <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -254,7 +327,19 @@
                     <h2>System Settings</h2>
                 </div>
                 <div class="ms-card" style="max-width: 600px;">
-                    <h3 style="margin-bottom: 1rem;">Anomaly Detection Thresholds</h3>
+                    <h3 style="margin-bottom: 1rem;">Exam Configuration</h3>
+                    <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
+                        <div>
+                            <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.2rem;">Exam Duration (Minutes)</label>
+                            <input type="number" id="setting-duration" class="ms-input" value="60" min="5" max="300">
+                        </div>
+                        <div style="display:flex; align-items:center; gap: 1rem; margin-top: 0.5rem;">
+                            <button class="ms-btn ms-btn-primary" onclick="saveSystemSettings()">Save Duration</button>
+                            <span id="setting-save-status" style="font-size:0.85rem; font-weight:600;"></span>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-bottom: 1rem; padding-top: 1rem; border-top: 1px solid var(--ms-grey-border);">Anomaly Detection Thresholds</h3>
                     <div style="display: flex; flex-direction: column; gap: 1rem;">
                         <div>
                             <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.2rem;">Max Tab Switches (Auto-Fail)</label>
@@ -264,7 +349,7 @@
                             <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.2rem;">Max General Warnings</label>
                             <input type="number" class="ms-input" value="15" disabled>
                         </div>
-                        <button class="ms-btn ms-btn-primary" style="align-self: flex-start; margin-top: 1rem;">Save Configuration</button>
+                        <button class="ms-btn ms-btn-primary" style="align-self: flex-start; margin-top: 1rem; opacity:0.5; cursor:not-allowed;" disabled>Save Configuration (Coming Soon)</button>
                         <p style="font-size: 0.8rem; color: var(--ms-grey-secondary); margin-top: 0.5rem;">Note: Changes apply to future exam sessions.</p>
                     </div>
                 </div>
@@ -556,13 +641,23 @@
                     tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--ms-grey-secondary);">No students registered yet.</td></tr>';
                     return;
                 }
-                tbody.innerHTML = students.map(st => `
+                tbody.innerHTML = students.map(st => {
+                    const studentId = st.student_id ? `'${st.student_id}'` : "''";
+                    const yearCat = st.year_category ? `'${st.year_category}'` : "''";
+                    const marks = st.marks || 0;
+                    return `
                     <tr>
                         <td><strong>${st.username}</strong></td>
-                        <td><span style="background: var(--ms-grey-light); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem;">${st.role}</span></td>
-                        <td><button class="ms-btn ms-btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; color: var(--ms-danger); border-color: var(--ms-danger);" onclick="deleteStudent('${st.username}')">Remove</button></td>
+                        <td>${st.student_id||'—'}</td>
+                        <td>${st.year_category||'—'}</td>
+                        <td><strong>${marks}</strong></td>
+                        <td style="display:flex;gap:0.5rem">
+                            <button class="ms-btn ms-btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="openEditModal('${st.username}', ${studentId}, ${yearCat}, ${marks})">Edit</button>
+                            <button class="ms-btn ms-btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; background:#7c3aed; border-color:#7c3aed;" onclick="resetStudentSession('${st.username}')">Reset Session</button>
+                            <button class="ms-btn ms-btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; color: var(--ms-danger); border-color: var(--ms-danger);" onclick="deleteStudent('${st.username}')">Remove</button>
+                        </td>
                     </tr>
-                `).join('');
+                `}).join('');
             });
         }
 
@@ -570,9 +665,223 @@
             if(!confirm("Permanently delete student: " + username + "?")) return;
             fetch('/api/users/' + username, { method: 'DELETE' }).then(r => r.json()).then(res => {
                 if (res.error) alert(res.error);
-                else loadStudents();
+                else {
+                    loadStudents();
+                    refreshDashboardStats();
+                }
             });
         }
+
+        function resetStudentSession(username) {
+            if(!confirm("Are you sure you want to reset the session for " + username + "? This will clear all evidence and marks for the current attempt.")) return;
+            fetch('/api/admin/student/' + username + '/reset', { method: 'POST' }).then(r => r.json()).then(res => {
+                alert(res.msg || "Session reset successful.");
+                loadStudents();
+                refreshDashboardStats();
+                loadSessions();
+            });
+        }
+        
+        function openEditModal(username, student_id, year, marks) {
+            document.getElementById('es-username').value = username;
+            document.getElementById('es-id').value = student_id || '';
+            document.getElementById('es-year').value = year || '';
+            document.getElementById('es-marks').value = marks || 0;
+            document.getElementById('edit-student-modal').style.display = 'flex';
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-student-modal').style.display = 'none';
+        }
+
+        async function saveStudent() {
+            const username = document.getElementById('es-username').value;
+            const payload = {
+                student_id: document.getElementById('es-id').value,
+                year_category: document.getElementById('es-year').value,
+                marks: document.getElementById('es-marks').value
+            };
+            await fetch('/api/admin/student/' + username, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            closeEditModal();
+            loadStudents();
+            refreshDashboardStats();
+        }
+
+        // --- HACKATHONS LOGIC ---
+        async function loadHackathons() {
+            const tbody = document.getElementById('hackathons-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Loading...</td></tr>';
+            const res = await fetch('/api/hackathons');
+            const data = await res.json();
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No hackathons posted.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = data.map(h => `
+                <tr>
+                    <td><strong>${h.title}</strong></td>
+                    <td><a href="${h.link}" target="_blank" style="color:var(--ms-blue);text-decoration:none;">🔗 Link</a></td>
+                    <td style="font-size:0.85rem">${h.description}</td>
+                    <td><button class="ms-btn ms-btn-secondary" style="padding:0.4rem 0.8rem;color:var(--ms-danger);border-color:var(--ms-danger)" onclick="deleteHackathon(${h.id})">Delete</button></td>
+                </tr>
+            `).join('');
+        }
+
+        async function addHackathon() {
+            const title = document.getElementById('h-title').value;
+            const link = document.getElementById('h-link').value;
+            const desc = document.getElementById('h-desc').value;
+            const msgEl = document.getElementById('h-msg');
+            
+            if(!title || !link) { msgEl.textContent = "Title and link required!"; msgEl.style.color = "var(--ms-danger)"; return; }
+            
+            msgEl.textContent = "Saving..."; msgEl.style.color = "var(--ms-grey-secondary)";
+            await fetch('/api/admin/hackathons', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({title, link, description: desc})
+            });
+            
+            msgEl.textContent = "Added!"; msgEl.style.color = "var(--ms-success)";
+            document.getElementById('h-title').value = '';
+            document.getElementById('h-link').value = '';
+            document.getElementById('h-desc').value = '';
+            loadHackathons();
+            setTimeout(() => { msgEl.textContent = ""; }, 3000);
+        }
+
+        async function deleteHackathon(id) {
+            if(!confirm("Delete hackathon?")) return;
+            await fetch('/api/admin/hackathons/' + id, {method: 'DELETE'});
+            loadHackathons();
+        }
+
+        // --- QUERIES LOGIC ---
+        async function loadQueries() {
+            const tbody = document.getElementById('queries-tbody');
+            if(!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Loading...</td></tr>';
+            const res = await fetch('/api/admin/queries');
+            const data = await res.json();
+            if(data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No queries found.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = data.map(q => `
+                <tr>
+                    <td><strong>${q.student}</strong><div style="font-size:0.7rem;color:#888;">${new Date(q.timestamp*1000).toLocaleString()}</div></td>
+                    <td style="font-size:0.85rem">${q.message}</td>
+                    <td>
+                        <textarea id="reply-${q.id}" class="ms-input" style="width:100%;resize:vertical" rows="2" placeholder="Type reply...">${q.admin_reply || ''}</textarea>
+                    </td>
+                    <td>
+                        <button class="ms-btn ms-btn-primary" style="padding:0.4rem 0.8rem;font-size:0.8rem;" onclick="replyQuery(${q.id})">${q.admin_reply ? 'Update' : 'Reply'}</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function replyQuery(id) {
+            const reply = document.getElementById('reply-' + id).value;
+            await fetch('/api/admin/queries/' + id + '/reply', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({admin_reply: reply})
+            });
+            loadQueries();
+        }
+
+        // --- DASHBOARD API EXTENSIONS ---
+        let currentExamMeta = {key_uploaded:0, results_released:0, duration_minutes:60};
+        async function loadExamMeta() {
+            const res = await fetch('/api/admin/exam_meta');
+            currentExamMeta = await res.json();
+            updateExamMetaButtons();
+            
+            const sd = document.getElementById('setting-duration');
+            if (sd && currentExamMeta.duration_minutes) {
+                sd.value = currentExamMeta.duration_minutes;
+            }
+        }
+        
+        window.saveSystemSettings = async function() {
+            const statusEl = document.getElementById('setting-save-status');
+            const dur = document.getElementById('setting-duration').value;
+            statusEl.textContent = "Saving...";
+            statusEl.style.color = "var(--ms-blue)";
+            
+            await fetch('/api/admin/exam_meta', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ duration_minutes: parseInt(dur) || 60 })
+            });
+            await loadExamMeta();
+            
+            statusEl.textContent = "✅ Saved successfully";
+            statusEl.style.color = "var(--ms-success)";
+            setTimeout(() => { statusEl.textContent = ""; }, 3000);
+        }
+        
+        function updateExamMetaButtons() {
+            const bk = document.getElementById('btn-upload-key');
+            const br = document.getElementById('btn-release-results');
+            if(!bk || !br) return;
+            
+            bk.textContent = currentExamMeta.key_uploaded ? "📁 Key Uploaded" : "📤 Upload Exam Key";
+            bk.className = currentExamMeta.key_uploaded ? "ms-btn ms-btn-secondary" : "ms-btn ms-btn-primary";
+            
+            br.textContent = currentExamMeta.results_released ? "👁 Results Released" : "✅ Release Results";
+            br.className = currentExamMeta.results_released ? "ms-btn ms-btn-secondary" : "ms-btn ms-btn-primary";
+        }
+
+        window.toggleExamMeta = async function(type) {
+            const payload = {};
+            if(type === 'key') payload.key_uploaded = currentExamMeta.key_uploaded ? 0 : 1;
+            if(type === 'results') payload.results_released = currentExamMeta.results_released ? 0 : 1;
+            
+            document.getElementById('exam-meta-status').textContent = "Updating...";
+            await fetch('/api/admin/exam_meta', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            await loadExamMeta();
+            document.getElementById('exam-meta-status').textContent = "Saved.";
+            setTimeout(() => { document.getElementById('exam-meta-status').textContent = ""; }, 2000);
+        }
+
+        async function refreshDashboardStats() {
+            try {
+                const res = await fetch('/api/admin/dashboard_stats');
+                const data = await res.json();
+                
+                // Rankers list
+                const rt = document.getElementById('rankers-tbody');
+                if(rt) {
+                    if(!data.rankers || data.rankers.length === 0) {
+                        rt.innerHTML = '<tr><td colspan="4" style="text-align: center;">No rankers available.</td></tr>';
+                    } else {
+                        rt.innerHTML = data.rankers.map((r, idx) => `
+                            <tr>
+                                <td><div style="width:24px;height:24px;background:var(--ms-blue);color:#fff;border-radius:50%;text-align:center;line-height:24px;font-size:0.8rem;font-weight:bold;">${idx+1}</div></td>
+                                <td><strong>${r.username}</strong></td>
+                                <td><span style="font-size:0.8rem;color:#666;">${r.year_category || 'N/A'}</span></td>
+                                <td><strong>${r.marks || 0}</strong></td>
+                            </tr>
+                        `).join('');
+                    }
+                }
+            } catch(e) { }
+        }
+        
+        // Setup initial fetches
+        setTimeout(() => { loadExamMeta(); refreshDashboardStats(); }, 1000);
+        setInterval(refreshDashboardStats, 15000);
         const SEV_ICONS = { high: '🔴', medium: '🟡', low: '🟢' };
         let seenEvents = new Set(), seenEvidence = new Set(), isExamActive = false;
 

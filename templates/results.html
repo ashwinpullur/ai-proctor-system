@@ -106,9 +106,15 @@
             btn.disabled = true;
             btn.textContent = "Transmitting...";
             
-            fetch('/api/submit', { method:'POST' }).then(() => {
-                status.textContent = 'Report transmitted to board successfully.';
+            fetch('/api/submit_exam', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ score: examScore })
+            }).then(r => r.json()).then(res => {
+                if(res.error) throw new Error(res.error);
+                status.textContent = 'Report transmitted to board successfully. Score updated!';
                 btn.textContent = 'Submitted ✓';
+                setTimeout(() => { window.location.href = '/student'; }, 2000);
             }).catch(() => {
                 status.textContent = 'Transmission failed. Attempting retry...';
                 btn.disabled = false;

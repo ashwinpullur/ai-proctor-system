@@ -20,6 +20,46 @@ Your project is now initialized as a Git repository. To push it to your account:
 
 ---
 
+## 1.5 Cross-Platform Setup (Linux & macOS)
+ScoreHunt is designed to work on Windows, macOS, and Linux.
+
+### Linux (Ubuntu/Debian)
+1. Install system dependencies for Audio (PyAudio):
+   ```bash
+   sudo apt-get update
+   sudo apt-get install portaudio19-dev python3-pyaudio
+   ```
+2. Run the application:
+   ```bash
+   chmod +x run.sh
+   ./run.sh
+   ```
+
+### macOS
+1. Install [Homebrew](https://brew.sh/) if not already installed.
+2. Install PortAudio:
+   ```bash
+   brew install portaudio
+   ```
+3. Grant **Accessibility** and **Screen Recording** permissions to your Terminal/IDE in `System Settings > Privacy & Security`.
+4. Run the application:
+   ```bash
+   chmod +x run.sh
+   ./run.sh
+   ```
+
+---
+
+## 1.6 Android & Mobile Usage
+ScoreHunt now supports mobile browsers (Android/iOS) for students.
+
+1. **Recommended Browser**: Use **Google Chrome** for the most reliable camera and tab-switch detection.
+2. **Tab Switching**: The system uses the Browser Visibility API. If you minimize the browser, open another app (WhatsApp, etc.), or switch tabs, a "Tab Switch" infraction will be recorded.
+3. **Responsive UI**: The exam interface automatically stacks into a mobile-friendly view.
+4. **Permissions**: You must allow **Camera** and **Microphone** access in the browser when prompted.
+
+---
+
 ## 2. Shared Deployment Options
 
 ### Option A: Local Network (Same WiFi)

@@ -218,9 +218,42 @@ def generate_frames(username=None):
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
             ret, buffer = cv2.imencode('.jpg', black_frame)
             yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-        time.sleep(0.3) # Avoid tight loop
+        time.sleep(0.3)
 
-# ── Routes ────────────────────────────────────────────────────────────────────
+@app.route('/api/submit_exam', methods=['POST'])
+@student_required
+def submit_exam_results():
+    """Submit Final Assessment score to update the database."""
+    try:
+        data = request.json
+        score = int(data.get('score', 0))
+        username = session.get('username')
+        
+        db = database.get_db()
+        cursor = db.cursor()
+        
+        # Add the score to their marks
+        # First ensure they exist in students table
+        cursor.execute("SELECT marks FROM students WHERE username = %s", (username,))
+        row = cursor.fetchone()
+        
+        if row:
+            new_marks = int(row['marks'] or 0) + score
+            cursor.execute("UPDATE students SET marks = %s WHERE username = %s", (new_marks, username))
+        else:
+            # Fallback inserts student into the table if they aren't there for some reason
+            cursor.execute("INSERT INTO students (username, marks) VALUES (%s, %s)", (username, score))
+            
+        db.commit()
+        database.close_db(db)
+        return jsonify({"status": "success", "msg": f"Results submitted. Score updated by {score}."})
+    except Exception as e:
+        print(f"[Results API] Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# ──────────────────────────────────────────────────────────────────────────────
+# MAIN
+# ──────────────────────────────────────────────────────────────────────────────
 @app.route('/')
 def index():
     return render_template('index.html', title="ScoreHunt | Home")
@@ -233,11 +266,16 @@ def check():
 @app.route('/exam')
 @student_required
 def exam():
-    return render_template('exam.html')
+    meta = database.get_exam_meta()
+    duration = meta.get('duration_minutes', 60)
+    return render_template('exam.html', duration=duration)
 
 @app.route('/results')
 @student_required
 def results():
+    meta = database.get_exam_meta()
+    if not meta.get('results_released'):
+        return redirect(url_for('student'))
     return render_template('results.html')
 
 @app.route('/student/verify_id')
@@ -253,7 +291,7 @@ def verify_face():
 @app.route('/student')
 @student_required
 def student():
-    return render_template('exam.html')
+    return render_template('student.html')
 
 @app.route('/student/register', methods=['GET', 'POST'])
 def student_register():
@@ -268,6 +306,7 @@ def student_register():
             "password": generate_password_hash(password),
             "role": "student"
         }
+        database.update_student(username) # Auto intialize row in student db
         save_users(users)
         return redirect(url_for('student_login'))
     return render_template('student_signup.html')
@@ -291,6 +330,7 @@ def login():
             if role == 'admin':
                 return redirect(url_for('admin'))
             else:
+                database.update_student(username) # sync student db record
                 return redirect(url_for('verify_id'))
                 
         return render_template('login.html', error=f"Invalid {role} credentials")
@@ -466,9 +506,20 @@ def control_exam():
     data = request.json
     if data.get('action') == 'start':
         is_exam_active = True
+        
+        # Simple mobile detection via User-Agent
+        ua = request.headers.get('User-Agent', '').lower()
+        is_mobile = any(x in ua for x in ['android', 'iphone', 'ipad', 'mobi'])
+        
         cheat_stats = {"warnings": 0, "face_mismatch_count": 0, "tab_switches": 0, "events": [], "evidence": [],
                        "student": data.get('student', 'Unknown'),
+                       "is_mobile": is_mobile,
                        "started_at": int(time.time())}
+        
+        if is_mobile:
+            print(f"[!] MOBILE STUDENT DETECTED: {cheat_stats['student']}")
+            log_infraction("System: Student is using a mobile device (Android/iOS). Browser proctoring active.")
+            
         # Reset per-type cooldown table for the fresh exam session
         _WARN_COOLDOWNS.clear()
 
@@ -500,8 +551,26 @@ def serve_evidence(filename):
     return send_from_directory(EVIDENCE_DIR, filename)
 
 @app.route('/api/evidence')
+@admin_required
 def list_evidence():
-    return jsonify(cheat_stats["evidence"])
+    combined = []
+    seen = set()
+    
+    # Live evidence first
+    for e in cheat_stats.get("evidence", []):
+        combined.append(e)
+        seen.add(e["file"])
+        
+    # Historical evidence from DB
+    with database.get_db() as conn:
+        evs = database._exec(conn, "SELECT filename, msg, timestamp FROM session_evidence ORDER BY timestamp DESC LIMIT 100", fetchall=True)
+        if evs:
+            for e in evs:
+                if e['filename'] not in seen:
+                    combined.append({"file": e['filename'], "msg": e['msg'], "ts": e['timestamp']})
+                    seen.add(e['filename'])
+                    
+    return jsonify(combined[:100])
 
 @app.route('/api/evidence/<filename>', methods=['DELETE'])
 def delete_evidence(filename):
@@ -803,6 +872,139 @@ def face_enroll():
         return jsonify({"status": "enrolled", "username": username})
     else:
         return jsonify({"error": "No face detected in frames — please ensure your face is visible and well-lit"}), 422
+
+# ── New Core Features API ─────────────────────────────────────────────────────
+
+@app.route('/api/hackathons', methods=['GET'])
+def get_hackathons():
+    return jsonify(database.list_hackathons())
+
+@app.route('/api/admin/hackathons', methods=['POST'])
+@admin_required
+def admin_add_hackathon():
+    data = request.json or {}
+    database.add_hackathon(data.get('title'), data.get('link'), data.get('description'))
+    return jsonify({"status": "created"})
+
+@app.route('/api/admin/hackathons/<int:h_id>', methods=['DELETE'])
+@admin_required
+def admin_delete_hackathon(h_id):
+    database.delete_hackathon(h_id)
+    return jsonify({"status": "deleted"})
+
+@app.route('/api/queries', methods=['GET'])
+@student_required
+def get_queries():
+    return jsonify(database.get_student_queries(session.get('username')))
+
+@app.route('/api/queries', methods=['POST'])
+@student_required
+def post_query():
+    data = request.json or {}
+    database.add_query(session.get('username'), data.get('message'))
+    return jsonify({"status": "created"})
+
+@app.route('/api/admin/queries', methods=['GET'])
+@admin_required
+def admin_get_queries():
+    return jsonify(database.list_all_queries())
+
+@app.route('/api/admin/queries/<int:q_id>/reply', methods=['POST'])
+@admin_required
+def admin_reply_query(q_id):
+    data = request.json or {}
+    database.reply_query(q_id, data.get('admin_reply'))
+    return jsonify({"status": "replied"})
+
+@app.route('/api/admin/exam_meta', methods=['GET', 'POST'])
+@admin_required
+def admin_exam_meta():
+    if request.method == 'POST':
+        data = request.json or {}
+        database.update_exam_meta(data.get('key_uploaded'), data.get('results_released'), data.get('duration_minutes'))
+        return jsonify({"status": "updated"})
+    return jsonify(database.get_exam_meta())
+
+@app.route('/api/student/profile', methods=['GET', 'POST'])
+@student_required
+def student_profile():
+    username = session.get('username')
+    if request.method == 'GET':
+        st = database.get_student(username)
+        return jsonify(st or {})
+        
+    data = request.form
+    full_name = data.get('full_name')
+    email = data.get('email')
+    phone = data.get('phone')
+    gpa = data.get('gpa')
+    
+    profile_image = None
+    resume = None
+    
+    p_img = request.files.get('profile_image')
+    if p_img and p_img.filename != '':
+        ext = p_img.filename.rsplit('.', 1)[-1]
+        fname = f"profile_{username}.{ext}"
+        path = os.path.join('static', 'uploads', 'profiles', fname)
+        p_img.save(path)
+        profile_image = f"uploads/profiles/{fname}"
+            
+    r_file = request.files.get('resume')
+    if r_file and r_file.filename != '':
+        ext = r_file.filename.rsplit('.', 1)[-1]
+        fname = f"resume_{username}.{ext}"
+        path = os.path.join('static', 'uploads', 'resumes', fname)
+        r_file.save(path)
+        resume = f"uploads/resumes/{fname}"
+            
+    database.update_student_profile(username, full_name=full_name, email=email, phone=phone, gpa=gpa, profile_image=profile_image, resume=resume)
+    return jsonify({"status": "updated"})
+
+@app.route('/api/exam_meta', methods=['GET'])
+def student_exam_meta():
+    return jsonify(database.get_exam_meta())
+
+@app.route('/api/admin/dashboard_stats', methods=['GET'])
+@admin_required
+def get_dashboard_stats():
+    sessions = database.list_sessions()
+    students_list = database.list_students()
+    students_db = {s['username']: s for s in students_list}
+    
+    # Map student stats to sessions
+    for sess in sessions:
+        uname = sess['student']
+        if uname in students_db:
+            sess['year_category'] = students_db[uname]['year_category']
+            sess['student_id']    = students_db[uname]['student_id']
+            sess['marks']         = students_db[uname]['marks']
+            
+    # Top rankers
+    students_list.sort(key=lambda x: x.get('marks') or 0, reverse=True)
+    
+    return jsonify({
+        "rankers": students_list[:3],
+        "total_attempted": len(sessions),
+        "total_registered": sum(1 for _, v in load_users().items() if v.get('role') == 'student'),
+        "sessions": sessions,
+        "students": students_list
+    })
+
+@app.route('/api/admin/student/<username>', methods=['POST'])
+@admin_required
+def update_student_data(username):
+    data = request.json or {}
+    database.update_student(username, data.get('student_id'), data.get('year_category'), int(data.get('marks', 0)))
+    return jsonify({"status": "updated"})
+
+
+@app.route('/api/admin/student/<username>/reset', methods=['POST'])
+@admin_required
+def reset_student_session(username):
+    """Clear session data for a student to allow a re-attempt."""
+    database.delete_student_session(username)
+    return jsonify({"status": "reset", "msg": f"Session cleared for {username}"})
 
 
 @app.route('/api/face/status')

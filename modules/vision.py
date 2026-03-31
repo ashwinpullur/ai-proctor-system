@@ -17,6 +17,9 @@ OBJ_MODEL_PATH  = os.path.join(_DIR, 'efficientdet_lite0.tflite')
 FACE_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
 OBJ_MODEL_URL  = "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float32/1/efficientdet_lite0.tflite"
 
+POSE_MODEL_PATH = os.path.join(_DIR, 'pose_landmarker_lite.task')
+POSE_MODEL_URL  = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task"
+
 EVIDENCE_DIR = os.path.join(os.path.dirname(_DIR), 'static', 'evidence')
 EVIDENCE_COOLDOWN = 3.0  # seconds between saves FOR THE SAME type
 
@@ -49,6 +52,7 @@ class VisionMonitor:
     def __init__(self):
         _ensure_model(FACE_MODEL_PATH, FACE_MODEL_URL)
         _ensure_model(OBJ_MODEL_PATH, OBJ_MODEL_URL)
+        _ensure_model(POSE_MODEL_PATH, POSE_MODEL_URL)
         _ensure_evidence_dir()
 
         # Face Landmarker
@@ -72,6 +76,17 @@ class VisionMonitor:
                 running_mode=mp_vision.RunningMode.IMAGE,
                 max_results=10,
                 score_threshold=0.35,
+            )
+        )
+
+        # Pose Landmarker (Body & Hands)
+        self.pose_lm = mp_vision.PoseLandmarker.create_from_options(
+            mp_vision.PoseLandmarkerOptions(
+                base_options=mp_base_options.BaseOptions(model_asset_path=POSE_MODEL_PATH),
+                running_mode=mp_vision.RunningMode.IMAGE,
+                num_poses=1,
+                min_pose_detection_confidence=0.5,
+                min_pose_presence_confidence=0.5,
             )
         )
 
@@ -291,5 +306,54 @@ class VisionMonitor:
                                 (bb.origin_x, max(bb.origin_y - 10, 20)),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 140, 255), 2)
                     evidence = self._save_evidence(frame, "book_detected")
+
+        # ── 3. Pose & Hand Detection (Body Language) ──────────────────────────────
+        pose_results = self.pose_lm.detect(mp_img)
+        if pose_results.pose_landmarks and len(pose_results.pose_landmarks) > 0:
+            landmarks = pose_results.pose_landmarks[0]
+            
+            # 11: left shoulder, 12: right shoulder
+            # 15: left wrist, 16: right wrist
+            ls = landmarks[11]
+            rs = landmarks[12]
+            lw = landmarks[15]
+            rw = landmarks[16]
+            
+            h, w, _ = frame.shape
+            adjusted_angle = 0.0
+            
+            # Posture checks (Shoulder Alignment)
+            if ls.visibility > 0.5 and rs.visibility > 0.5:
+                dx = (ls.x - rs.x) * w
+                dy = (ls.y - rs.y) * h
+                angle = np.degrees(np.arctan2(dy, dx))
+                
+                # Draw shoulders
+                cv2.line(frame, (int(ls.x * w), int(ls.y * h)), (int(rs.x * w), int(rs.y * h)), (255, 255, 0), 2)
+                
+                # Normal shoulder angle is around 0 or 180 depending on orientation. Let's say +/- 20 degrees
+                # If they lean heavily to one side
+                adjusted_angle = abs(angle)
+                if adjusted_angle > 90: adjusted_angle = 180 - adjusted_angle
+                
+                if adjusted_angle > 25:
+                    msg = f"Posture Anomaly: Heavy leaning detected ({adjusted_angle:.1f}°)"
+                    infractions.append(msg)
+                    self.current_status = "⚠ Body Posture Anomaly"
+                    cv2.putText(frame, 'POSTURE WARNING', (int(rs.x * w), max(10, int(rs.y * h) - 20)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                    evidence = self._save_evidence(frame, "posture_anomaly")
+            
+            # Hand checks (Wrists Hidden)
+            # If wrists are continually out of frame (visibility < 0.2), they might be holding a phone under the desk
+            hands_hidden = False
+            if lw.visibility < 0.2 and rw.visibility < 0.2:
+                hands_hidden = True
+                cv2.putText(frame, 'HANDS HIDDEN', (20, h - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 165, 255), 2)
+                # In a strict baseline we could flag this, for now we just log it as a minor anomaly if they lean while hidden
+                if adjusted_angle > 15:  # Leaning + Hands Hidden = Suspicious
+                    msg = "Suspicious Behavior: Hands hidden while leaning"
+                    if msg not in infractions: infractions.append(msg)
+                    self.current_status = "⚠ Suspicious Movement"
+                    evidence = self._save_evidence(frame, "suspicious_movement")
 
         return frame, infractions, evidence   # evidence = filename or None
