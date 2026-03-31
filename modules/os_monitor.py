@@ -15,15 +15,15 @@ class OSMonitor(threading.Thread):
     """
 
     BASELINE_DURATION   = 30    # seconds to collect baseline
-    DEVIATION_MULT      = 5.0   # flag if burst is >5× baseline mean (raised from 4×)
-    MAX_KEY_RATE        = 25    # hard cap (presses/sec) before baseline is ready
+    DEVIATION_MULT      = 12.0  # flag if burst is >12× baseline mean (raised to allow heavy bursts)
+    MAX_KEY_RATE        = 35    # hard cap (presses/sec) before baseline is ready
     FLAG_COOLDOWN       = 30.0  # seconds between duplicate flags (raised from 15s)
 
     # Dwell / flight dynamics thresholds — more tolerant to avoid false positives
-    PASTE_FLIGHT_MIN    = 1200  # ms — long inter-key gap (was 800ms)
-    MACRO_DWELL_STD_MAX = 8     # ms std-dev: too Robot-consistent = macro (was 5ms)
-    MIN_DYNAMICS_SAMPLE = 30    # need at least this many events (was 20)
-    PASTE_HIT_COUNT     = 3     # ≥ this many of the last 5 flights must exceed threshold
+    PASTE_FLIGHT_MAX    = 15    # ms — super fast flight (not slow pauses)
+    MACRO_DWELL_STD_MAX = 3     # ms std-dev: too Robot-consistent = macro (was 5ms)
+    MIN_DYNAMICS_SAMPLE = 40    # need at least this many events (was 20)
+    PASTE_HIT_COUNT     = 4     # ≥ this many of the last 5 flights must be sub-threshold
 
     def __init__(self, callback):
         super().__init__()
@@ -124,14 +124,13 @@ class OSMonitor(threading.Thread):
         Detect copy-paste (single huge flight) and macro / auto-type
         (suspiciously uniform dwell times).  Called under _dyn_lock.
         """
-        # 1. Copy-paste: require PASTE_HIT_COUNT of last 5 flights to exceed threshold
-        #    (single long pause often = user thinking, not pasting)
+        # 1. Copy-paste / macro burst: require PASTE_HIT_COUNT of last 5 flights to be less than threshold
         if self._flight_times and len(self._flight_times) >= 5:
             recent_flights = self._flight_times[-5:]
-            hit_count = sum(1 for f in recent_flights if f > self.PASTE_FLIGHT_MIN)
+            hit_count = sum(1 for f in recent_flights if f < self.PASTE_FLIGHT_MAX)
             if hit_count >= self.PASTE_HIT_COUNT:
-                max_flight = max(recent_flights)
-                self._flag(f"Possible copy-paste detected ({hit_count}/5 gaps >{self.PASTE_FLIGHT_MIN}ms, max={max_flight:.0f}ms)")
+                min_flight = min(recent_flights)
+                self._flag(f"Possible macro burst detected ({hit_count}/5 gaps <{self.PASTE_FLIGHT_MAX}ms, min={min_flight:.0f}ms)")
                 return
 
         # 2. Macro: dwell times suspiciously uniform
@@ -152,21 +151,14 @@ class OSMonitor(threading.Thread):
 
     # ── Window checker ────────────────────────────────────────────────────────
     def check_active_window(self):
-        """
-        Check if the active window title matches the exam window.
-        Note: pygetwindow is primarily designed for Windows.
-        On Linux (python-xlib) and macOS (Quartz/Accessibility), it may return None or raise.
-        """
         try:
             active = gw.getActiveWindow()
-            if active and hasattr(active, 'title') and self.allowed_window_title:
+            if active and self.allowed_window_title:
                 title = active.title
-                if title and self.allowed_window_title not in title:
+                if self.allowed_window_title not in title:
                     self.callback(f"Window switched: '{title}'")
         except Exception as e:
-            # Silence expected cross-platform errors unless they repeat too much
-            # print(f"[OSMonitor] Window check bypassed: {e}")
-            pass
+            print(f"[OSMonitor] Window check error: {e}")
 
     # ── Thread run ────────────────────────────────────────────────────────────
     def run(self):

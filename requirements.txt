@@ -14,11 +14,3 @@ attrs==23.2.0
 click==8.1.7
 blinker==1.7.0
 absl-py==2.1.0
-PyMySQL==1.1.0
-
-# ── Optional OS-specific dependencies ──────────────────────────────────────
-# For Linux window tracking:
-# python-xlib==0.33
-# For macOS window tracking:
-# pyobjc-framework-Quartz==10.1
-# Note: install separately if on these systems.

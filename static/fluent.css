@@ -32,17 +32,16 @@ body {
 
 /* Layout Utilities */
 .container {
-    width: 100%;
-    max-width: 1600px;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 0 clamp(1rem, 4vw, 3rem);
+    padding: 0 2rem;
 }
 
 .ms-card {
     background: var(--ms-white);
     border: 1px solid var(--ms-grey-border);
     border-radius: var(--ms-radius);
-    padding: clamp(1.2rem, 3vw, 2.5rem);
+    padding: 2rem;
     box-shadow: var(--ms-shadow);
     transition: box-shadow 0.2s ease-in-out;
 }
@@ -57,9 +56,9 @@ h1, h2, h3, h4 {
     color: #1b1b1b;
 }
 
-h1 { font-size: clamp(1.75rem, 3vw, 2.75rem); margin-bottom: 1.5rem; }
-h2 { font-size: clamp(1.4rem, 2.5vw, 2rem); margin-bottom: 1rem; }
-p { margin-bottom: 1rem; color: var(--ms-grey-secondary); font-size: clamp(0.9rem, 1.5vw, 1.05rem); }
+h1 { font-size: 2.25rem; margin-bottom: 1.5rem; }
+h2 { font-size: 1.75rem; margin-bottom: 1rem; }
+p { margin-bottom: 1rem; color: var(--ms-grey-secondary); }
 
 /* Buttons */
 .ms-btn {
@@ -157,27 +156,295 @@ p { margin-bottom: 1rem; color: var(--ms-grey-secondary); font-size: clamp(0.9re
     gap: 2rem;
 }
 
-/* ── Mobile & Tablet Responsiveness ───────────────────────────────────────── */
-@media (max-width: 900px) {
+/* Responsive Design - All Screen Sizes */
+@media screen and (max-width: 1200px) {
     .container {
-        padding: 0 1.25rem;
+        padding: 0 1rem;
     }
     
-    h1 { font-size: 1.75rem; }
-    h2 { font-size: 1.4rem; }
+    .admin-main {
+        padding: 1.5rem;
+    }
     
-    .ms-grid {
-        grid-template-columns: 1fr;
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
     }
 }
 
-@media (max-width: 600px) {
+@media screen and (max-width: 992px) {
+    .admin-wrapper {
+        flex-direction: column;
+    }
+    
+    .admin-sidebar-rail {
+        width: 100%;
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 0.75rem;
+        border-right: none;
+        border-bottom: 1px solid var(--ms-grey-border);
+        gap: 0.25rem;
+    }
+    
+    .nav-item {
+        padding: 0.5rem 1rem;
+        white-space: nowrap;
+        font-size: 0.85rem;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+        flex-shrink: 0;
+    }
+    
+    .nav-item:hover,
+    .nav-item.active {
+        border-left: none;
+        border-bottom-color: var(--ms-blue);
+    }
+    
+    .admin-main {
+        padding: 1rem;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    :root {
+        --ms-radius: 8px;
+    }
+    
+    body {
+        font-size: 14px;
+    }
+    
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: 1.25rem; }
+    h3 { font-size: 1.1rem; }
+    
+    .container {
+        padding: 0 0.75rem;
+    }
+    
     .ms-card {
-        padding: 1.25rem;
+        padding: 1rem;
+    }
+    
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.75rem !important;
+        margin-bottom: 1.5rem;
+    }
+    
+    .kpi-card {
+        padding: 1rem;
+    }
+    
+    .kpi-card .value {
+        font-size: 1.25rem;
+    }
+    
+    .ms-table {
+        font-size: 0.8rem;
+    }
+    
+    .ms-table th,
+    .ms-table td {
+        padding: 0.6rem;
     }
     
     .ms-btn {
-        width: 100%;
-        margin-bottom: 0.5rem;
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+    
+    .ms-input {
+        padding: 0.6rem;
+        font-size: 16px;
+    }
+    
+    .ms-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .ev-gallery {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    
+    .live-student-grid {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .modal-overlay {
+        padding: 0.5rem;
+    }
+    
+    .modal-content {
+        max-width: 100% !important;
+        margin: 0;
+        border-radius: 8px;
+    }
+    
+    .modal-body {
+        padding: 1rem;
+    }
+    
+    .modal-header {
+        padding: 1rem;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .kpi-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.5rem !important;
+    }
+    
+    .kpi-card {
+        padding: 0.75rem;
+    }
+    
+    .kpi-card .label {
+        font-size: 0.65rem;
+    }
+    
+    .kpi-card .value {
+        font-size: 1rem;
+    }
+    
+    .ms-table {
+        display: block;
+        overflow-x: auto;
+    }
+    
+    .nav-item {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.75rem;
+    }
+    
+    .admin-sidebar-rail {
+        padding: 0.5rem;
+    }
+    
+    .admin-main {
+        padding: 0.75rem;
+    }
+    
+    .tab-nav {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .tab-btn {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.8rem;
+        flex-shrink: 0;
+    }
+}
+
+@media screen and (max-width: 375px) {
+    body {
+        font-size: 13px;
+    }
+    
+    .kpi-grid {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .ms-btn {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.8rem;
+    }
+    
+    .admin-sidebar-rail {
+        gap: 0;
+    }
+    
+    .nav-item {
+        padding: 0.4rem 0.5rem;
+        font-size: 0.7rem;
+    }
+}
+
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+    .ms-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Touch-friendly improvements */
+@media (hover: none) and (pointer: coarse) {
+    .ms-btn,
+    .nav-item,
+    .tab-btn,
+    button {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .ms-input {
+        min-height: 44px;
+    }
+    
+    a, button {
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    }
+    
+    .modal-content {
+        touch-action: manipulation;
+    }
+}
+
+/* iOS specific fixes */
+@supports (-webkit-touch-callout: none) {
+    .admin-sidebar-rail {
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .ms-table {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Scrollbar styling for all OS */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--ms-grey-light);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--ms-grey-secondary);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--ms-grey-text);
+}
+
+/* Firefox scrollbar */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ms-grey-secondary) var(--ms-grey-light);
+}
+
+/* Print styles */
+@media print {
+    .admin-sidebar-rail,
+    .ms-btn,
+    button {
+        display: none !important;
+    }
+    
+    .admin-main {
+        width: 100% !important;
+        padding: 0 !important;
     }
 }
