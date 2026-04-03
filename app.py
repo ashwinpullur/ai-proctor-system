@@ -34,7 +34,7 @@ except Exception as _e:
     print(f"[App] Face recognition unavailable: {_e}")
 
 app = Flask(__name__)
-app.secret_key = "AI_PROCTOR_SECRET_KEY"  # for sessions
+app.secret_key = os.environ.get("SECRET_KEY", "AI_PROCTOR_SECRET_KEY")  # Use env var in production
 
 # Initialise SQLite DB
 database.init_db()

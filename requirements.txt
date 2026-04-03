@@ -1,6 +1,6 @@
 Flask==3.1.0
-opencv-python==4.9.0.80
-mediapipe==0.10.11
+opencv-contrib-python==4.9.0.80
+mediapipe==0.10.33
 pyaudio==0.2.14
 pynput==1.7.6
 pygetwindow==0.0.9
@@ -12,5 +12,5 @@ pyrect==0.2.0
 cffi==1.16.0
 attrs==23.2.0
 click==8.1.7
-blinker==1.7.0
-absl-py==2.1.0
+blinker>=1.9.0
+absl-py>=2.3.0

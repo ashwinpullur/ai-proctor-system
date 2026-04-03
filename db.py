@@ -1035,12 +1035,6 @@ def list_exam_keys(exam_name):
         ).fetchall()
         return [dict(r) for r in rows]
 
-def list_exams():
-    """List all exam settings."""
-    with get_db() as conn:
-        rows = conn.execute("SELECT * FROM exam_settings ORDER BY created_at DESC").fetchall()
-        return [dict(r) for r in rows]
-
 def create_exam(exam_name, duration=60, total_marks=100):
     """Create a new exam setting."""
     with get_db() as conn:
