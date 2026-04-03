@@ -237,10 +237,38 @@
             margin-top: .75rem;
         }
 
-        @media(max-width:700px) {
+        @media (max-width: 768px) {
+            .bl-header { 
+                flex-direction: column; 
+                text-align: center; 
+                padding: 1.5rem; 
+                gap: 1rem;
+            }
+            .bl-steps { margin-top: 0.5rem; }
+            .metrics-row { 
+                grid-template-columns: 1fr 1fr; 
+                gap: 0.75rem; 
+            }
+            .metric-card { padding: 1rem; }
+            .m-value { font-size: 1.3rem; }
             .bl-grid { grid-template-columns: 1fr; }
-            .metrics-row { grid-template-columns: 1fr 1fr; }
-            .bl-header { flex-direction: column; }
+            .bl-card { padding: 1.25rem; }
+            .phase-row { padding: 1.25rem; }
+            .phase-label { font-size: 0.9rem; }
+            .bl-footer { 
+                flex-direction: column; 
+                text-align: center; 
+                padding: 1.5rem;
+            }
+            .bl-footer-note { margin-bottom: 1rem; }
+            #proceed-btn { width: 100%; }
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 1rem 0.5rem; }
+            .metrics-row { grid-template-columns: 1fr; }
+            .bl-header h1 { font-size: 1.25rem; }
+            .m-value { font-size: 1.5rem; }
         }
     </style>
 </head>

@@ -3,252 +3,356 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ScoreHunt | Admin Center</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='fluent.css') }}">
+    <title>Admin Center | ScoreHunt AI</title>
+    <link rel="stylesheet" href="/static/fluent.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { background: var(--ms-off-white); display: flex; flex-direction: column; min-height: 100vh; }
-        .admin-wrapper { display: flex; flex: 1; }
-        
-        /* Mobile Menu Toggle */
-        .mobile-menu-toggle {
-            display: none;
+        :root {
+            --sidebar-width: 280px;
+            --admin-bg: #f8fafc;
+            --admin-card: #ffffff;
+            --admin-accent: #0078d4;
+            --admin-text: #1e293b;
+            --admin-text-sec: #64748b;
+        }
+
+        body {
+            background-color: var(--admin-bg);
+            color: var(--admin-text);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: white;
+            border-right: 1px solid #e2e8f0;
+            height: 100vh;
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1001;
-            background: var(--ms-blue);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 56px;
-            height: 56px;
-            font-size: 1.5rem;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        }
-        
-        .mobile-nav-header {
-            display: none;
-        }
-        
-        /* Sidebar Rail */
-        .admin-sidebar-rail {
-            width: 280px;
-            background: var(--ms-grey-light);
-            border-right: 1px solid var(--ms-grey-border);
-            padding: 1.5rem 0;
+            left: 0;
+            top: 0;
             display: flex;
             flex-direction: column;
-            position: sticky;
-            top: 0;
-            height: 100vh;
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .sidebar-logo {
+            width: 32px;
+            height: 32px;
+            background: var(--admin-accent);
+            color: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 0.9rem;
+        }
+
+        .nav-links {
+            flex: 1;
+            padding: 1.5rem 1rem;
             overflow-y: auto;
         }
 
-        .nav-item {
-            padding: 0.75rem 2rem;
+        .nav-link {
             display: flex;
-            align-items: center; gap: 1rem;
-            color: var(--ms-grey-text);
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            color: var(--admin-text-sec);
             text-decoration: none;
-            font-size: 0.95rem;
-            border-left: 4px solid transparent;
-            transition: background 0.2s, border-color 0.2s;
+            border-radius: 12px;
+            margin-bottom: 4px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
         }
 
-        .nav-item:hover { background: var(--ms-grey-border); }
-        .nav-item.active { background: var(--ms-white); border-left-color: var(--ms-blue); font-weight: 600; }
+        .nav-link:hover {
+            color: var(--admin-accent);
+            background: #f1f5f9;
+        }
+
+        .nav-link.active {
+            color: white;
+            background: var(--admin-accent);
+            box-shadow: 0 4px 12px rgba(0, 120, 212, 0.2);
+        }
+
+        .sidebar-footer {
+            padding: 1.5rem;
+            border-top: 1px solid #f1f5f9;
+        }
 
         /* Main Content */
-        .admin-main { flex: 1; padding: 2.5rem; min-width: 0; }
-
-        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2.5rem; }
-        .kpi-card { background: var(--ms-white); padding: 1.5rem; border: 1px solid var(--ms-grey-border); border-radius: var(--ms-radius); box-shadow: var(--ms-shadow); }
-        .kpi-card .label { font-size: 0.8rem; color: var(--ms-grey-secondary); margin-bottom: 0.5rem; font-weight: 600; text-transform: uppercase; }
-        .kpi-card .value { font-size: 1.75rem; font-weight: 700; color: var(--ms-blue); }
-
-        .ms-table { width: 100%; border-collapse: collapse; background: var(--ms-white); border: 1px solid var(--ms-grey-border); border-radius: var(--ms-radius); overflow: hidden; }
-        .ms-table th { background: var(--ms-grey-light); padding: 1rem; text-align: left; font-size: 0.85rem; color: var(--ms-grey-secondary); border-bottom: 1px solid var(--ms-grey-border); }
-        .ms-table td { padding: 1rem; border-bottom: 1px solid var(--ms-off-white); font-size: 0.9rem; }
-        .ms-table tr:hover { background: var(--ms-off-white); }
-        .ms-table-responsive { overflow-x: auto; }
-
-        .status-badge-live { background: #fee2e2; color: #b91c1c; padding: 0.2rem 0.6rem; border-radius: 4px; font-weight: 700; font-size: 0.75rem; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-
-        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-
-        /* Report Modal */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 2rem; }
-        .modal-content { background: var(--ms-white); width: 100%; max-width: 900px; max-height: 90vh; border-radius: var(--ms-radius); box-shadow: 0 24px 48px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; }
-        .modal-header { padding: 1.5rem 2rem; border-bottom: 1px solid var(--ms-grey-border); display: flex; justify-content: space-between; align-items: center; background: var(--ms-grey-light); flex-shrink: 0; }
-        .modal-body { padding: 2rem; overflow-y: auto; flex: 1; }
-        .ev-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; margin-top: 1rem; }
-        .ev-gallery img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 4px; border: 1px solid var(--ms-grey-border); }
-        
-        /* Responsive Sidebar */
-        @media (max-width: 992px) {
-            .admin-sidebar-rail {
-                position: fixed;
-                left: -280px;
-                top: 0;
-                height: 100vh;
-                z-index: 1002;
-                transition: left 0.3s ease;
-                width: 280px;
-            }
-            
-            .admin-sidebar-rail.open {
-                left: 0;
-            }
-            
-            .admin-sidebar-rail.open ~ .sidebar-overlay {
-                display: block;
-            }
-            
-            .mobile-menu-toggle {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            
-            .mobile-nav-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 1rem 1.5rem;
-                border-bottom: 1px solid var(--ms-grey-border);
-                font-weight: 600;
-                color: var(--ms-grey-text);
-            }
-            
-            .mobile-close-btn {
-                background: none;
-                border: none;
-                font-size: 1.25rem;
-                cursor: pointer;
-                padding: 0.25rem;
-            }
-            
-            .admin-main {
-                padding: 1rem;
-                width: 100%;
-            }
-            
-            .sidebar-overlay {
-                display: none;
-                position: fixed;
-                inset: 0;
-                background: rgba(0,0,0,0.5);
-                z-index: 1001;
-            }
-            
-            .kpi-grid {
-                grid-template-columns: repeat(2, 1fr) !important;
-            }
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 2.5rem;
+            max-width: calc(100vw - var(--sidebar-width));
         }
-        
-        @media (max-width: 576px) {
-            .kpi-grid {
-                grid-template-columns: 1fr 1fr !important;
-                gap: 0.75rem !important;
-            }
-            
-            .modal-overlay {
-                padding: 0.5rem;
-            }
-            
-            .modal-content {
-                max-height: 95vh;
-            }
-            
-            .modal-header {
-                padding: 1rem;
-            }
-            
-            .modal-body {
-                padding: 1rem;
-            }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
         }
-        
-        @media (max-width: 400px) {
-            .kpi-grid {
-                grid-template-columns: 1fr !important;
-            }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-label {
+            color: var(--admin-text-sec);
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--admin-text);
+        }
+
+        /* Tables & Lists */
+        .panel-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 24px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .ms-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .ms-table th {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 2px solid #f1f5f9;
+            color: var(--admin-text-sec);
+            font-weight: 700;
+        }
+
+        .ms-table td {
+            padding: 16px 12px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 100px;
+            font-weight: 700;
+            font-size: 0.75rem;
+        }
+
+        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+
+        /* Monitoring Grid */
+        .live-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .monitor-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            position: relative;
+        }
+
+        .stream-view {
+            aspect-ratio: 4/3;
+            background: #000;
+            position: relative;
+        }
+
+        .stream-img { width: 100%; height: 100%; object-fit: cover; }
+
+        .live-tag {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #ef4444;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-size: 0.65rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            animation: pulse-red 2s infinite;
+        }
+
+        @keyframes pulse-red { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        /* Form Controls */
+        .ms-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            font-family: inherit;
+        }
+
+        .ms-input:focus {
+            border-color: var(--admin-accent);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+        }
+
+        .btn-action {
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            border: 1px solid #e2e8f0;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-action:hover { background: #f1f5f9; }
+
+        .btn-primary {
+            background: var(--admin-accent);
+            color: white;
+            border: none;
+        }
+
+        .btn-primary:hover { background: #106ebe; }
+
+        /* Tabs within panels */
+        .tab-bar {
+            display: flex;
+            gap: 1.5rem;
+            border-bottom: 2px solid #f1f5f9;
+            margin-bottom: 2rem;
+        }
+
+        .tab-item {
+            padding: 12px 4px;
+            font-weight: 700;
+            color: var(--admin-text-sec);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab-item.active {
+            color: var(--admin-accent);
+            border-bottom-color: var(--admin-accent);
         }
     </style>
 </head>
 <body>
-    <header class="ms-header" style="margin-bottom: 0;">
-        <div class="container navbar">
-            <div style="display: flex; align-items: center; gap: 2rem;">
-                <a href="/" class="ms-logo-box">
-                    <div class="ms-symbol" style="background: var(--ms-blue); width: 20px; height: 20px; border-radius: 4px; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800;">SH</div>
-                    <span>ScoreHunt AI Admin</span>
-                </a>
-            </div>
-            <div class="nav-links">
-                <span style="margin-right: 1.5rem;"><strong>{{ session.username }}</strong></span>
-                <a href="/logout" class="ms-btn ms-btn-secondary" style="padding: 0.4rem 1rem;">Sign out</a>
-            </div>
-        </div>
-    </header>
 
-    <!-- Mobile Menu Toggle -->
-    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰ Menu</button>
-    
-    <div class="admin-wrapper">
-        <nav class="admin-sidebar-rail" id="mobileNav">
-            <div class="mobile-nav-header">
-                <span>Menu</span>
-                <button class="mobile-close-btn" onclick="toggleMobileMenu()">✕</button>
-            </div>
-            <a href="#" class="nav-item active" onclick="switchSection('dashboard', this); closeMobileMenu();">🏠 Dashboard</a>
-            <a href="#" class="nav-item" onclick="switchSection('monitoring', this); loadEvidence(); closeMobileMenu();">📊 Monitoring</a>
-            <a href="#" class="nav-item" onclick="switchSection('liveproctoring', this); startLivePoll(); closeMobileMenu();">🎥 Proctoring</a>
-            <a href="#" class="nav-item" onclick="switchSection('questions', this); loadAdminQuestions(); closeMobileMenu();">📝 Questions</a>
-            <a href="#" class="nav-item" onclick="switchSection('schedules', this); closeMobileMenu();">📅 Schedules</a>
-            <a href="#" class="nav-item" onclick="switchSection('students', this); loadStudents(); closeMobileMenu();">👥 Students</a>
-            <a href="#" class="nav-item" onclick="switchSection('marks', this); loadMarks(); closeMobileMenu();">📊 Marks</a>
-            <a href="#" class="nav-item" onclick="switchSection('rankers', this); loadRankers(); closeMobileMenu();">🏆 Rankers</a>
-            <a href="#" class="nav-item" onclick="switchSection('attendance', this); loadAttendance(); closeMobileMenu();">✅ Attendance</a>
-            <a href="#" class="nav-item" onclick="switchSection('hackathons', this); loadHackathons(); closeMobileMenu();">🚀 Hackathons</a>
-            <a href="#" class="nav-item" onclick="switchSection('examkeys', this); closeMobileMenu();">🔑 Keys</a>
-            <a href="#" class="nav-item" onclick="switchSection('results', this); loadResults(); closeMobileMenu();">📋 Results</a>
-            <a href="#" class="nav-item" onclick="switchSection('reattempts', this); loadReattemptRequests(); closeMobileMenu();">🔄 Attempts</a>
-            <a href="#" class="nav-item" onclick="switchSection('queries', this); loadQueries(); closeMobileMenu();">💬 Queries</a>
-            <a href="#" class="nav-item" onclick="switchSection('notifications', this); loadNotifications(); closeMobileMenu();">🔔 Alerts</a>
-            <a href="#" class="nav-item" onclick="switchSection('settings', this); closeMobileMenu();">⚙️ Settings</a>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">SH</div>
+            <span style="font-weight:800; font-size:1.1rem; letter-spacing:-0.5px;">ScoreHunt Admin</span>
+        </div>
+        
+        <nav class="nav-links">
+            <a href="#" class="nav-link active" onclick="switchPanel('dashboard', this)"><span>🏠</span> Dashboard</a>
+            <a href="#" class="nav-link" onclick="switchPanel('proctoring', this)"><span>🎥</span> Live Monitoring</a>
+            <a href="#" class="nav-link" onclick="switchPanel('exams', this)"><span>📅</span> Manage Exams</a>
+            <a href="#" class="nav-link" onclick="switchPanel('questions', this)"><span>📝</span> Question Bank</a>
+<!-- Student Directory Removed -->
+            <a href="#" class="nav-link" onclick="switchPanel('reports', this)"><span>📊</span> Session Reports</a>
+            <a href="#" class="nav-link" onclick="switchPanel('chat', this)"><span>💬</span> Support Chat</a>
+            <a href="#" class="nav-link" onclick="switchPanel('settings', this)"><span>⚙️</span> System Config</a>
         </nav>
 
-        <main class="admin-main">
-            <!-- DASHBOARD SECTION -->
-            <section id="sec-dashboard" class="admin-section">
-            
-            <div style="width: 100%; border-radius: var(--ms-radius); overflow: hidden; margin-bottom: 2rem; box-shadow: var(--ms-shadow); position: relative;">
-                <img src="/static/scorehunt_ai_agent_banner.png" alt="ScoreHunt AI Agent Dashboard" style="width: 100%; height: 200px; object-fit: cover; display: block;">
-                <!-- Subtle gradient overlay to make any future text pop if needed -->
-                <div style="position: absolute; inset: 0; background: linear-gradient(to right, rgba(0,0,0,0.4) 0%, transparent 100%); pointer-events: none;"></div>
-            </div>
-
-            <div class="section-header">
-                <h2>Dashboard Overview</h2>
+        <div class="sidebar-footer">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:1rem;">
+                <div style="width:32px; height:32px; background:#e2e8f0; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800;">{{ session.username[0]|upper }}</div>
                 <div>
-                    <button class="ms-btn ms-btn-primary" id="adminStartBtn">Start Exam Session</button>
-                    <button class="ms-btn ms-btn-secondary" id="adminStopBtn" disabled>Stop Session</button>
+                    <div style="font-size:0.85rem; font-weight:700;">{{ session.username }}</div>
+                    <div style="font-size:0.7rem; color:var(--admin-text-sec);">Administrator</div>
+                </div>
+            </div>
+            <a href="/logout" style="color:#ef4444; font-size:0.8rem; font-weight:700; text-decoration:none; display:flex; align-items:center; gap:8px;">
+                <span>🚪</span> Sign Out
+            </a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <!-- ===== DASHBOARD OVERVIEW ===== -->
+        <div id="panel-dashboard" class="panel animate-in">
+            <div class="page-header">
+                <div>
+                    <h1 style="margin:0; font-size:1.75rem; font-weight:800; letter-spacing:-1px;">Dashboard Overview</h1>
+                    <p style="color:var(--admin-text-sec); margin:4px 0 0;">Welcome back, {{ session.username }}. Here's what's happening.</p>
+                </div>
+                <div style="display:flex; gap:1rem;">
+                    <button class="btn-action btn-primary" onclick="switchPanel('proctoring')">Start Exam Session</button>
+                    <button class="btn-action" onclick="stopAllSessions()">Stop All Sessions</button>
                 </div>
             </div>
 
-            <div class="kpi-grid">
-                <div class="kpi-card"><div class="label">Active Sessions</div><div class="value" id="exam-badge">0</div></div>
-                <div class="kpi-card"><div class="label">Total Warnings</div><div class="value" id="kpi-warnings" style="color: var(--ms-danger);">0</div></div>
-                <div class="kpi-card"><div class="label">Integrity Score</div><div class="value">98.4%</div></div>
-                <div class="kpi-card"><div class="label">Status</div><div class="value" style="font-size: 1.2rem;" id="kpi-vision">Connected</div></div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Active Sessions</div>
+                    <div id="stat-active" class="stat-value">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Warnings</div>
+                    <div id="stat-warnings" class="stat-value" style="color:#f59e0b;">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Avg Integrity Score</div>
+                    <div id="stat-integrity" class="stat-value" style="color:#10b981;">100%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">System Status</div>
+                    <div id="stat-status" class="stat-value" style="font-size:1.1rem; padding-top:8px; color:#10b981;">Normal</div>
+                </div>
             </div>
 
-            <div class="ms-grid" style="grid-template-columns: 2fr 1fr;">
-                <div class="ms-card">
-                    <div class="section-header"><h3>Recent Assessments</h3></div>
+            <div class="panel-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                    <h2 style="margin:0; font-size:1.25rem; font-weight:800;">Recent Assessments</h2>
+                    <button class="btn-action" onclick="switchPanel('reports')">View All Reports</button>
+                </div>
+                <div style="overflow-x:auto;">
                     <table class="ms-table">
                         <thead>
                             <tr>
@@ -259,2089 +363,521 @@
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="exam-tbody">
-                            <tr><td colspan="5" style="text-align: center; color: var(--ms-grey-secondary);">Loading records...</td></tr>
+                        <tbody id="recent-assessments-body">
+                            <tr><td colspan="5" style="text-align:center; padding:3rem; color:var(--admin-text-sec);">Loading recent sessions...</td></tr>
                         </tbody>
                     </table>
-                </div>
-
-                <div class="ms-card" style="display: flex; flex-direction: column; gap: 1.5rem;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <h3>Live Monitor</h3>
-                        <select id="student-monitor-select" class="ms-select" style="width:160px; padding:4px; border-radius:4px; font-size:0.85rem;" onchange="updateMonitorStream()">
-                            <option value="">-- No Student --</option>
-                        </select>
-                    </div>
-                    <div style="background: #000; aspect-ratio: 4/3; border-radius: 4px; overflow: hidden; position: relative; display:flex; align-items:center; justify-content:center;">
-                        <img id="admin-video-feed" src="" style="width: 100%; height: 100%; object-fit: cover; display:none;">
-                        <div id="no-feed-placeholder" style="color:#64748b; font-size:0.8rem;">Select student for live feed</div>
-                        <div class="status-badge-live" id="live-indicator" style="position: absolute; top: 10px; right: 10px; display:none;">LIVE</div>
-                    </div>
-                    <div style="flex: 1; border: 1px solid var(--ms-grey-border); padding: 1rem; border-radius: 4px; background: var(--ms-grey-light); font-family: monospace; font-size: 0.8rem; overflow-y: auto; max-height: 200px;" id="admin-log">
-                        Admin initializing...
-                    </div>
-                </div>
-            </div>
-
-            </section>
-
-            <!-- EXAM MONITORING (EVIDENCE) SECTION -->
-            <section id="sec-monitoring" class="admin-section" style="display:none;">
-                <div class="section-header">
-                    <h2>Exam Monitoring & Evidence</h2>
-                    <button class="ms-btn ms-btn-secondary" onclick="loadEvidence()">↻ Refresh</button>
-                </div>
-                <div class="ms-card">
-                    <p style="color: var(--ms-grey-secondary); font-size: 0.9rem; margin-bottom: 1rem;">All captured evidence from active sessions will appear below.</p>
-                    <div id="evidence-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
-                        <p style="color: var(--ms-grey-secondary);">Loading evidence...</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- MANAGE SCHEDULES SECTION -->
-            <section id="sec-schedules" class="admin-section" style="display:none;">
-                <div class="section-header">
-                    <h2>Exam Schedules</h2>
-                    <button class="ms-btn ms-btn-primary" onclick="openScheduleModal()">+ New Schedule</button>
-                </div>
-                <div class="ms-card">
-                    <table class="ms-table">
-                        <thead>
-                            <tr>
-                                <th>Exam Name</th>
-                                <th>Start Date</th>
-                                <th>Total Students</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="schedules-tbody">
-                            <tr>
-                                <td>AI Fundamentals 101</td>
-                                <td>March 25, 2026</td>
-                                <td>45</td>
-                                <td><a href="#" onclick="alert('Edit mode not available yet')" style="color: var(--ms-blue);">Edit</a></td>
-                            </tr>
-                            <tr>
-                                <td>Machine Learning Advanced</td>
-                                <td>April 02, 2026</td>
-                                <td>12</td>
-                                <td><a href="#" onclick="alert('Edit mode not available yet')" style="color: var(--ms-blue);">Edit</a></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- NEW SCHEDULE MODAL -->
-                <div class="modal-overlay" id="schedule-modal" style="z-index: 2000;">
-                    <div class="modal-content" style="max-width: 500px;">
-                        <div class="modal-header">
-                            <h2 style="margin: 0; font-size: 1.25rem;">Create New Exam Schedule</h2>
-                            <button class="ms-btn ms-btn-secondary" onclick="closeScheduleModal()" style="border:none;background:transparent;font-size:1.2rem;padding:0;cursor:pointer;">✕</button>
-                        </div>
-                        <div class="modal-body">
-                            <div style="margin-bottom: 1rem;">
-                                <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Exam Name</label>
-                                <input type="text" id="sch-name" class="ms-input" placeholder="e.g. Data Structures Midterm" style="width: 100%;">
-                            </div>
-                            <div style="margin-bottom: 1rem;">
-                                <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Start Date & Time</label>
-                                <input type="datetime-local" id="sch-date" class="ms-input" style="width: 100%;">
-                            </div>
-                            <div style="margin-bottom: 1.5rem;">
-                                <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Expected Students</label>
-                                <input type="number" id="sch-students" class="ms-input" placeholder="0" style="width: 100%;">
-                            </div>
-                            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-                                <button class="ms-btn ms-btn-secondary" onclick="closeScheduleModal()">Cancel</button>
-                                <button class="ms-btn ms-btn-primary" onclick="saveSchedule()">Save Schedule</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- STUDENTS SECTION -->
-            <section id="sec-students" class="admin-section" style="display:none;">
-                <div class="section-header">
-                    <h2>Student Management</h2>
-                    <button class="ms-btn ms-btn-secondary" onclick="loadStudents()">↻ Refresh</button>
-                </div>
-                
-                <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1.5rem;">
-                    <div class="kpi-card"><div class="label">1st Year</div><div class="value" id="year-1-count">0</div></div>
-                    <div class="kpi-card"><div class="label">2nd Year</div><div class="value" id="year-2-count">0</div></div>
-                    <div class="kpi-card"><div class="label">3rd Year</div><div class="value" id="year-3-count">0</div></div>
-                    <div class="kpi-card"><div class="label">4th Year</div><div class="value" id="year-4-count">0</div></div>
-                </div>
-
-                <div class="ms-card" style="margin-bottom: 1.5rem;">
-                    <h3 style="margin-bottom: 1rem;">Filter by Year</h3>
-                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                        <button class="ms-btn ms-btn-primary" onclick="filterStudentsByYear('all')" id="filter-all">All Students</button>
-                        <button class="ms-btn ms-btn-secondary" onclick="filterStudentsByYear('1st Year')" id="filter-1st">1st Year</button>
-                        <button class="ms-btn ms-btn-secondary" onclick="filterStudentsByYear('2nd Year')" id="filter-2nd">2nd Year</button>
-                        <button class="ms-btn ms-btn-secondary" onclick="filterStudentsByYear('3rd Year')" id="filter-3rd">3rd Year</button>
-                        <button class="ms-btn ms-btn-secondary" onclick="filterStudentsByYear('4th Year')" id="filter-4th">4th Year</button>
-                    </div>
-                </div>
-
-                <div class="ms-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <h3>Students List</h3>
-                        <button class="ms-btn ms-btn-primary" onclick="openAddStudentModal()">+ Add Student Manually</button>
-                    </div>
-                    <table class="ms-table">
-                        <thead>
-                            <tr>
-                                <th>Student ID</th>
-                                <th>Username</th>
-                                <th>Year</th>
-                                <th>Department</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="students-tbody">
-                            <tr><td colspan="5" style="text-align: center;">Loading students...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- ADD STUDENT MODAL -->
-                <div class="modal-overlay" id="add-student-modal">
-                    <div class="modal-content" style="max-width: 500px;">
-                        <div class="modal-header">
-                            <h2 style="margin: 0; font-size: 1.25rem;">Add Student Manually</h2>
-                            <button onclick="closeAddStudentModal()" style="border: none; background: transparent; font-size: 1.2rem; cursor: pointer;">✕</button>
-                        </div>
-                        <div class="modal-body">
-                            <div style="margin-bottom: 1rem;">
-                                <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Student ID *</label>
-                                <input type="text" id="new-student-id" class="ms-input" style="width: 100%;" placeholder="e.g., STU001">
-                            </div>
-                            <div style="margin-bottom: 1rem;">
-                                <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Username *</label>
-                                <input type="text" id="new-username" class="ms-input" style="width: 100%;" placeholder="Enter username">
-                            </div>
-                            <div style="margin-bottom: 1rem;">
-                                <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Year *</label>
-                                <select id="new-year" class="ms-input" style="width: 100%;">
-                                    <option value="1st Year">1st Year</option>
-                                    <option value="2nd Year">2nd Year</option>
-                                    <option value="3rd Year">3rd Year</option>
-                                    <option value="4th Year">4th Year</option>
-                                </select>
-                            </div>
-                            <div style="margin-bottom: 1rem;">
-                                <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Department</label>
-                                <select id="new-department" class="ms-input" style="width: 100%;">
-                                    <option value="Computer Science">Computer Science</option>
-                                    <option value="Electronics">Electronics</option>
-                                    <option value="Mechanical">Mechanical</option>
-                                    <option value="Civil">Civil</option>
-                                    <option value="Electrical">Electrical</option>
-                                    <option value="Information Technology">Information Technology</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                            <div style="margin-bottom: 1.5rem;">
-                                <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Password *</label>
-                                <input type="password" id="new-password" class="ms-input" style="width: 100%;" placeholder="Set password">
-                            </div>
-                            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-                                <button class="ms-btn ms-btn-secondary" onclick="closeAddStudentModal()">Cancel</button>
-                                <button class="ms-btn ms-btn-primary" onclick="addStudentManually()">Add Student</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- EDIT STUDENT MODAL -->
-                <div class="modal-overlay" id="edit-student-modal">
-                    <div class="modal-content" style="max-width: 500px;">
-                        <div class="modal-header">
-                            <h2 style="margin: 0; font-size: 1.25rem;">Edit Student Profile</h2>
-                            <button onclick="closeEditStudentModal()" style="border: none; background: transparent; font-size: 1.2rem; cursor: pointer;">✕</button>
-                        </div>
-                        <div class="modal-body">
-                            <input type="hidden" id="edit-username">
-                            <div style="margin-bottom: 1rem;">
-                                <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Student ID</label>
-                                <input type="text" id="edit-student-id" class="ms-input" style="width: 100%;">
-                            </div>
-                            <div style="margin-bottom: 1rem;">
-                                <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Year</label>
-                                <select id="edit-year" class="ms-input" style="width: 100%;">
-                                    <option value="1st Year">1st Year</option>
-                                    <option value="2nd Year">2nd Year</option>
-                                    <option value="3rd Year">3rd Year</option>
-                                    <option value="4th Year">4th Year</option>
-                                </select>
-                            </div>
-                            <div style="margin-bottom: 1.5rem;">
-                                <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Department</label>
-                                <select id="edit-department" class="ms-input" style="width: 100%;">
-                                    <option value="Computer Science">Computer Science</option>
-                                    <option value="Electronics">Electronics</option>
-                                    <option value="Mechanical">Mechanical</option>
-                                    <option value="Civil">Civil</option>
-                                    <option value="Electrical">Electrical</option>
-                                    <option value="Information Technology">Information Technology</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-                                <button class="ms-btn ms-btn-secondary" onclick="closeEditStudentModal()">Cancel</button>
-                                <button class="ms-btn ms-btn-primary" onclick="saveStudentEdit()">Save Changes</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- SETTINGS SECTION -->
-            <section id="sec-settings" class="admin-section" style="display:none;">
-                <div class="section-header">
-                    <h2>System Settings</h2>
-                </div>
-                <div class="ms-card" style="max-width: 600px;">
-                    <h3 style="margin-bottom: 1rem;">Anomaly Detection Thresholds</h3>
-                    <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <div>
-                            <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.2rem;">Max Tab Switches (Auto-Fail)</label>
-                            <input type="number" class="ms-input" value="3" disabled>
-                        </div>
-                        <div>
-                            <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.2rem;">Max General Warnings</label>
-                            <input type="number" class="ms-input" value="15" disabled>
-                        </div>
-                        <button class="ms-btn ms-btn-primary" style="align-self: flex-start; margin-top: 1rem;">Save Configuration</button>
-                        <p style="font-size: 0.8rem; color: var(--ms-grey-secondary); margin-top: 0.5rem;">Note: Changes apply to future exam sessions.</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ═══════════════════════════════════════════════════════════════
-                 LIVE PROCTORING SECTION — full student-feed grid
-            ═══════════════════════════════════════════════════════════════ -->
-            <section id="sec-liveproctoring" class="admin-section" style="display:none;">
-                <div class="section-header">
-                    <h2>🎥 Live Proctoring</h2>
-                    <div style="display:flex;gap:.75rem;align-items:center;">
-                        <span id="live-student-count" style="font-size:.85rem;color:var(--ms-grey-secondary);">0 students online</span>
-                        <button class="ms-btn ms-btn-secondary" onclick="refreshLiveStudents()">↻ Refresh</button>
-                    </div>
-                </div>
-
-                <!-- Student grid -->
-                <div id="live-student-grid" style="
-                    display:grid;
-                    grid-template-columns:repeat(auto-fill, minmax(300px,1fr));
-                    gap:1.5rem;
-                ">
-                    <div id="live-no-students" style="
-                        grid-column:1/-1; text-align:center; padding:4rem 2rem;
-                        color:var(--ms-grey-secondary); font-size:.95rem;
-                    ">
-                        <div style="font-size:3rem;margin-bottom:1rem;">📷</div>
-                        <div>No students are currently taking an exam.</div>
-                        <div style="font-size:.8rem;margin-top:.5rem;">This panel auto-refreshes every 3 seconds.</div>
-                    </div>
-                </div>
-
-                <!-- Fullscreen view modal -->
-                <div id="fs-modal" style="
-                    position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:10000;
-                    display:none;flex-direction:column;align-items:center;justify-content:center;
-                ">
-                    <button onclick="closeFSModal()" style="
-                        position:absolute;top:1.5rem;right:1.5rem;
-                        background:#fff;border:none;border-radius:50%;width:36px;height:36px;
-                        font-size:1.2rem;cursor:pointer;font-weight:700;
-                    ">✕</button>
-                    <div id="fs-label" style="color:#fff;font-size:1.2rem;font-weight:700;margin-bottom:1rem;"></div>
-                    <img id="fs-feed" src="" alt="Live Feed" style="max-width:90vw;max-height:80vh;border-radius:12px;">
-                </div>
-            </section>
-
-            <!-- ═══════════════════════════════════════════════════════════════
-                 MARKS MANAGEMENT SECTION
-            ═══════════════════════════════════════════════════════════════ -->
-            <section id="sec-marks" class="admin-section" style="display:none;">
-                <div class="section-header">
-                    <h2>📊 Marks Management</h2>
-                    <button class="ms-btn ms-btn-primary" onclick="openMarksModal()">+ Add/Update Marks</button>
-                </div>
-                <div class="ms-card" style="margin-bottom:1.5rem;">
-                    <div style="display:flex;gap:1rem;margin-bottom:1rem;flex-wrap:wrap;">
-                        <select id="marks-exam-filter" class="ms-input" style="max-width:200px;">
-                            <option value="">All Exams</option>
-                        </select>
-                        <select id="marks-year-filter" class="ms-input" style="max-width:150px;">
-                            <option value="">All Years</option>
-                            <option value="1st Year">1st Year</option>
-                            <option value="2nd Year">2nd Year</option>
-                            <option value="3rd Year">3rd Year</option>
-                            <option value="4th Year">4th Year</option>
-                        </select>
-                        <button class="ms-btn ms-btn-secondary" onclick="loadMarks()">Filter</button>
-                    </div>
-                    <table class="ms-table">
-                        <thead>
-                            <tr>
-                                <th>Student</th>
-                                <th>Exam</th>
-                                <th>Year</th>
-                                <th>Total Marks</th>
-                                <th>Obtained</th>
-                                <th>Percentage</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="marks-tbody">
-                            <tr><td colspan="7" style="text-align:center;color:var(--ms-grey-secondary);">Loading...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="ms-card">
-                    <h3 style="margin-bottom:1rem;">Bulk Upload Marks (CSV Format)</h3>
-                    <p style="color:var(--ms-grey-secondary);font-size:0.85rem;margin-bottom:1rem;">Format: student,total_marks,obtained_marks,year</p>
-                    <textarea id="bulk-marks-data" class="ms-input" rows="6" placeholder="student1,100,85,1st Year&#10;student2,100,92,1st Year" style="width:100%;font-family:monospace;"></textarea>
-                    <div style="margin-top:1rem;display:flex;gap:1rem;align-items:center;">
-                        <input type="text" id="bulk-exam-name" class="ms-input" placeholder="Exam Name" style="max-width:250px;">
-                        <button class="ms-btn ms-btn-primary" onclick="uploadBulkMarks()">Upload Bulk Marks</button>
-                    </div>
-                </div>
-
-                <!-- MARKS MODAL -->
-                <div class="modal-overlay" id="marks-modal">
-                    <div class="modal-content" style="max-width:500px;">
-                        <div class="modal-header">
-                            <h2 style="margin:0;font-size:1.25rem;">Add/Update Student Marks</h2>
-                            <button class="ms-btn ms-btn-secondary" onclick="closeMarksModal()" style="border:none;background:transparent;font-size:1.2rem;cursor:pointer;">✕</button>
-                        </div>
-                        <div class="modal-body">
-                            <div style="margin-bottom:1rem;">
-                                <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;">Student Username</label>
-                                <input type="text" id="mark-student" class="ms-input" style="width:100%;" placeholder="Enter student username">
-                            </div>
-                            <div style="margin-bottom:1rem;">
-                                <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;">Exam Name</label>
-                                <input type="text" id="mark-exam" class="ms-input" style="width:100%;" placeholder="e.g. Mid-Term 2026">
-                            </div>
-                            <div style="display:flex;gap:1rem;margin-bottom:1rem;">
-                                <div style="flex:1;">
-                                    <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;">Total Marks</label>
-                                    <input type="number" id="mark-total" class="ms-input" style="width:100%;" value="100">
-                                </div>
-                                <div style="flex:1;">
-                                    <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;">Obtained Marks</label>
-                                    <input type="number" id="mark-obtained" class="ms-input" style="width:100%;" placeholder="0">
-                                </div>
-                            </div>
-                            <div style="margin-bottom:1.5rem;">
-                                <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;">Year</label>
-                                <select id="mark-year" class="ms-input" style="width:100%;">
-                                    <option value="1st Year">1st Year</option>
-                                    <option value="2nd Year">2nd Year</option>
-                                    <option value="3rd Year">3rd Year</option>
-                                    <option value="4th Year">4th Year</option>
-                                </select>
-                            </div>
-                            <div style="display:flex;gap:1rem;justify-content:flex-end;">
-                                <button class="ms-btn ms-btn-secondary" onclick="closeMarksModal()">Cancel</button>
-                                <button class="ms-btn ms-btn-primary" onclick="saveMarks()">Save Marks</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ═══════════════════════════════════════════════════════════════
-                 TOP RANKERS SECTION
-            ═══════════════════════════════════════════════════════════════ -->
-            <section id="sec-rankers" class="admin-section" style="display:none;">
-                <div class="section-header">
-                    <h2>🏆 Top Rankers</h2>
-                    <select id="rankers-exam-select" class="ms-input" style="max-width:200px;" onchange="loadRankers()">
-                        <option value="">Select Exam</option>
-                    </select>
-                </div>
-                <div class="ms-card" style="margin-bottom:1.5rem;">
-                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-bottom:2rem;">
-                        <div class="kpi-card" style="background:linear-gradient(135deg,#fef3c7,#fde68a);text-align:center;">
-                            <div style="font-size:2.5rem;margin-bottom:0.5rem;">🥇</div>
-                            <div id="ranker-1" style="font-size:1.1rem;font-weight:700;">-</div>
-                            <div id="ranker-1-marks" style="font-size:0.9rem;color:var(--ms-grey-secondary);">-</div>
-                        </div>
-                        <div class="kpi-card" style="background:linear-gradient(135deg,#e5e7eb,#d1d5db);text-align:center;">
-                            <div style="font-size:2.5rem;margin-bottom:0.5rem;">🥈</div>
-                            <div id="ranker-2" style="font-size:1.1rem;font-weight:700;">-</div>
-                            <div id="ranker-2-marks" style="font-size:0.9rem;color:var(--ms-grey-secondary);">-</div>
-                        </div>
-                        <div class="kpi-card" style="background:linear-gradient(135deg,#fed7aa,#fdba74);text-align:center;">
-                            <div style="font-size:2.5rem;margin-bottom:0.5rem;">🥉</div>
-                            <div id="ranker-3" style="font-size:1.1rem;font-weight:700;">-</div>
-                            <div id="ranker-3-marks" style="font-size:0.9rem;color:var(--ms-grey-secondary);">-</div>
-                        </div>
-                    </div>
-                    <h3 style="margin-bottom:1rem;">Full Rankings</h3>
-                    <table class="ms-table">
-                        <thead>
-                            <tr>
-                                <th>Rank</th>
-                                <th>Student ID</th>
-                                <th>Student Name</th>
-                                <th>Year</th>
-                                <th>Marks</th>
-                                <th>Percentage</th>
-                            </tr>
-                        </thead>
-                        <tbody id="rankers-tbody">
-                            <tr><td colspan="6" style="text-align:center;color:var(--ms-grey-secondary);">Loading...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- ═══════════════════════════════════════════════════════════════
-                 ATTENDANCE SECTION
-            ═══════════════════════════════════════════════════════════════ -->
-            <section id="sec-attendance" class="admin-section" style="display:none;">
-                <div class="section-header">
-                    <h2>✅ Exam Attendance</h2>
-                    <div style="display:flex;gap:1rem;">
-                        <input type="text" id="attendance-exam-name" class="ms-input" placeholder="Exam Name" style="max-width:200px;">
-                        <button class="ms-btn ms-btn-primary" onclick="loadAttendance()">Load</button>
-                    </div>
-                </div>
-                <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1.5rem;">
-                    <div class="kpi-card"><div class="label">Total Students</div><div class="value" id="att-total">0</div></div>
-                    <div class="kpi-card"><div class="label">Attempted</div><div class="value" style="color:var(--ms-success);" id="att-attempted">0</div></div>
-                    <div class="kpi-card"><div class="label">Not Attempted</div><div class="value" style="color:var(--ms-danger);" id="att-not-attempted">0</div></div>
-                </div>
-                <div class="ms-card" style="margin-bottom:1rem;">
-                    <h3 style="margin-bottom:1rem;">Students Who Attempted</h3>
-                    <table class="ms-table">
-                        <thead>
-                            <tr><th>Student</th><th>Status</th><th>Attempted At</th></tr>
-                        </thead>
-                        <tbody id="att-attempted-tbody">
-                            <tr><td colspan="3" style="text-align:center;">-</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="ms-card">
-                    <h3 style="margin-bottom:1rem;color:var(--ms-danger);">Students Who Didn't Attempt</h3>
-                    <table class="ms-table">
-                        <thead>
-                            <tr><th>Student</th><th>Status</th><th>Actions</th></tr>
-                        </thead>
-                        <tbody id="att-not-tbody">
-                            <tr><td colspan="3" style="text-align:center;">-</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- ═══════════════════════════════════════════════════════════════
-                 HACKATHONS SECTION
-            ═══════════════════════════════════════════════════════════════ -->
-            <section id="sec-hackathons" class="admin-section" style="display:none;">
-                <div class="section-header">
-                    <h2>🚀 Hackathon Announcements</h2>
-                    <button class="ms-btn ms-btn-primary" onclick="openHackathonModal()">+ Add Hackathon</button>
-                </div>
-                <div class="ms-card" style="margin-bottom:1.5rem;">
-                    <h3 style="margin-bottom:1rem;">Active Hackathons</h3>
-                    <div id="hackathons-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;">
-                        <p style="color:var(--ms-grey-secondary);">Loading...</p>
-                    </div>
-                </div>
-                <div class="ms-card">
-                    <h3 style="margin-bottom:1rem;">Student Applications</h3>
-                    <table class="ms-table">
-                        <thead>
-                            <tr><th>Student</th><th>Team</th><th>Applied At</th><th>Status</th></tr>
-                        </thead>
-                        <tbody id="hackathon-apps-tbody">
-                            <tr><td colspan="4" style="text-align:center;">-</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- HACKATHON MODAL -->
-                <div class="modal-overlay" id="hackathon-modal">
-                    <div class="modal-content" style="max-width:500px;">
-                        <div class="modal-header">
-                            <h2 style="margin:0;font-size:1.25rem;">Add Hackathon</h2>
-                            <button onclick="closeHackathonModal()" style="border:none;background:transparent;font-size:1.2rem;cursor:pointer;">✕</button>
-                        </div>
-                        <div class="modal-body">
-                            <div style="margin-bottom:1rem;">
-                                <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;">Title *</label>
-                                <input type="text" id="hack-title" class="ms-input" style="width:100%;">
-                            </div>
-                            <div style="margin-bottom:1rem;">
-                                <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;">Description</label>
-                                <textarea id="hack-desc" class="ms-input" rows="3" style="width:100%;"></textarea>
-                            </div>
-                            <div style="margin-bottom:1rem;">
-                                <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;">Registration Link *</label>
-                                <input type="url" id="hack-link" class="ms-input" style="width:100%;" placeholder="https://...">
-                            </div>
-                            <div style="display:flex;gap:1rem;margin-bottom:1.5rem;">
-                                <div style="flex:1;">
-                                    <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;">Start Date</label>
-                                    <input type="date" id="hack-start" class="ms-input" style="width:100%;">
-                                </div>
-                                <div style="flex:1;">
-                                    <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;">End Date</label>
-                                    <input type="date" id="hack-end" class="ms-input" style="width:100%;">
-                                </div>
-                            </div>
-                            <div style="display:flex;gap:1rem;justify-content:flex-end;">
-                                <button class="ms-btn ms-btn-secondary" onclick="closeHackathonModal()">Cancel</button>
-                                <button class="ms-btn ms-btn-primary" onclick="saveHackathon()">Save</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ═══════════════════════════════════════════════════════════════
-                 EXAM KEYS SECTION
-            ═══════════════════════════════════════════════════════════════ -->
-            <section id="sec-examkeys" class="admin-section" style="display:none;">
-                <div class="section-header">
-                    <h2>🔑 Exam Key Management</h2>
-                </div>
-                <div class="ms-card" style="margin-bottom:1.5rem;">
-                    <h3 style="margin-bottom:1rem;">Upload Answer Key</h3>
-                    <div style="margin-bottom:1rem;">
-                        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;">Exam Name</label>
-                        <input type="text" id="key-exam-name" class="ms-input" style="max-width:300px;" placeholder="e.g. Mid-Term 2026">
-                    </div>
-                    <div style="margin-bottom:1rem;">
-                        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;">Answer Key (Text)</label>
-                        <textarea id="key-content" class="ms-input" rows="10" style="width:100%;font-family:monospace;" placeholder="Q1: A&#10;Q2: B&#10;Q3: C"></textarea>
-                    </div>
-                    <button class="ms-btn ms-btn-primary" onclick="saveExamKey()">Save Answer Key</button>
-                </div>
-                <div class="ms-card">
-                    <h3 style="margin-bottom:1rem;">Release Key to Students</h3>
-                    <p style="color:var(--ms-grey-secondary);font-size:0.85rem;margin-bottom:1rem;">
-                        After all students complete the exam, manually release the key here.
-                    </p>
-                    <div style="display:flex;gap:1rem;align-items:center;">
-                        <input type="text" id="release-exam-name" class="ms-input" style="max-width:300px;" placeholder="Exam Name">
-                        <button class="ms-btn ms-btn-success" onclick="releaseExamKey()">🔓 Release Key</button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ═══════════════════════════════════════════════════════════════
-                 RESULTS SECTION
-            ═══════════════════════════════════════════════════════════════ -->
-            <section id="sec-results" class="admin-section" style="display:none;">
-                <div class="section-header">
-                    <h2>📋 Exam Results</h2>
-                    <button class="ms-btn ms-btn-primary" onclick="publishResults()">📤 Publish Results</button>
-                </div>
-                <div class="ms-card">
-                    <div style="margin-bottom:1rem;">
-                        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;">Exam Name</label>
-                        <input type="text" id="results-exam-name" class="ms-input" style="max-width:300px;" placeholder="e.g. Mid-Term 2026">
-                    </div>
-                    <table class="ms-table">
-                        <thead>
-                            <tr><th>Student</th><th>Marks</th><th>Percentage</th><th>Verdict</th><th>Published</th></tr>
-                        </thead>
-                        <tbody id="results-tbody">
-                            <tr><td colspan="5" style="text-align:center;">-</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- ═══════════════════════════════════════════════════════════════
-                 RE-ATTEMPTS SECTION
-            ═══════════════════════════════════════════════════════════════ -->
-            <section id="sec-reattempts" class="admin-section" style="display:none;">
-                <div class="section-header">
-                    <h2>🔄 Re-attempt Requests</h2>
-                </div>
-                <div class="ms-card">
-                    <table class="ms-table">
-                        <thead>
-                            <tr><th>Student</th><th>Exam</th><th>Status</th><th>Actions</th></tr>
-                        </thead>
-                        <tbody id="reattempt-tbody">
-                            <tr><td colspan="4" style="text-align:center;">Loading...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- ═══════════════════════════════════════════════════════════════
-                 QUERIES SECTION
-            ═══════════════════════════════════════════════════════════════ -->
-            <section id="sec-queries" class="admin-section" style="display:none;">
-                <div class="section-header">
-                    <h2>💬 Student Queries</h2>
-                    <span id="unread-badge" class="ms-badge ms-badge-danger" style="display:none;">0 Unread</span>
-                </div>
-                <div class="ms-card">
-                    <div id="queries-list" style="display:flex;flex-direction:column;gap:1rem;">
-                        <p style="color:var(--ms-grey-secondary);text-align:center;padding:2rem;">Loading queries...</p>
-                    </div>
-                </div>
-
-                <!-- RESPOND MODAL -->
-                <div class="modal-overlay" id="respond-modal">
-                    <div class="modal-content" style="max-width:500px;">
-                        <div class="modal-header">
-                            <h2 style="margin:0;font-size:1.25rem;">Respond to Query</h2>
-                            <button onclick="closeRespondModal()" style="border:none;background:transparent;font-size:1.2rem;cursor:pointer;">✕</button>
-                        </div>
-                        <div class="modal-body">
-                            <div id="respond-student" style="margin-bottom:1rem;font-weight:600;"></div>
-                            <div id="respond-question" style="background:var(--ms-grey-light);padding:1rem;border-radius:8px;margin-bottom:1rem;"></div>
-                            <textarea id="respond-text" class="ms-input" rows="5" style="width:100%;" placeholder="Type your response..."></textarea>
-                            <div style="margin-top:1rem;display:flex;gap:1rem;justify-content:flex-end;">
-                                <button class="ms-btn ms-btn-secondary" onclick="closeRespondModal()">Cancel</button>
-                                <button class="ms-btn ms-btn-primary" onclick="submitResponse()">Send Response</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ═══════════════════════════════════════════════════════════════
-                 NOTIFICATIONS SECTION
-            ═══════════════════════════════════════════════════════════════ -->
-            <section id="sec-notifications" class="admin-section" style="display:none;">
-                <div class="section-header">
-                    <h2>🔔 Send Notifications</h2>
-                </div>
-                <div class="ms-card" style="margin-bottom:1.5rem;">
-                    <h3 style="margin-bottom:1rem;">Create Notification</h3>
-                    <div style="margin-bottom:1rem;">
-                        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;">Title</label>
-                        <input type="text" id="notif-title" class="ms-input" style="width:100%;">
-                    </div>
-                    <div style="margin-bottom:1rem;">
-                        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;">Message</label>
-                        <textarea id="notif-message" class="ms-input" rows="3" style="width:100%;"></textarea>
-                    </div>
-                    <div style="margin-bottom:1rem;">
-                        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;">Target</label>
-                        <select id="notif-target" class="ms-input" style="max-width:200px;">
-                            <option value="all">All Students</option>
-                        </select>
-                    </div>
-                    <div style="margin-bottom:1rem;">
-                        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;">Type</label>
-                        <select id="notif-type" class="ms-input" style="max-width:200px;">
-                            <option value="info">Info</option>
-                            <option value="warning">Warning</option>
-                            <option value="exam">Exam</option>
-                            <option value="result">Result</option>
-                        </select>
-                    </div>
-                    <button class="ms-btn ms-btn-primary" onclick="sendNotification()">Send Notification</button>
-                </div>
-                <div class="ms-card">
-                    <h3 style="margin-bottom:1rem;">Notification History</h3>
-                    <div id="notif-history" style="display:flex;flex-direction:column;gap:0.75rem;">
-                        <p style="color:var(--ms-grey-secondary);text-align:center;">-</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ═══════════════════════════════════════════════════════════════
-                 QUESTION BANK SECTION
-            ═══════════════════════════════════════════════════════════════ -->
-            <section id="sec-questions" class="admin-section" style="display:none;">
-                <div class="section-header">
-                    <h2>📝 Question Bank</h2>
-                    <button class="ms-btn ms-btn-secondary" onclick="loadAdminQuestions(); loadExamSettings();">↻ Refresh</button>
-                </div>
-
-                <!-- Exam Settings Card -->
-                <div class="ms-card" style="margin-bottom: 2rem; background: linear-gradient(135deg, #fef3c7, #fde68a); border: 1px solid #f59e0b;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <h3 style="margin: 0;">⚙️ Exam Settings</h3>
-                        <span id="current-exam-badge" style="background: #f59e0b; color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">No Exam Selected</span>
-                    </div>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
-                        <div>
-                            <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.4rem;">Exam Name *</label>
-                            <input type="text" id="exam-name" class="ms-input" placeholder="e.g. Mid-Term 2026" style="background: white;">
-                        </div>
-                        <div>
-                            <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.4rem;">Duration (5-200 mins) *</label>
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <input type="range" id="duration-slider" min="5" max="200" value="60" style="flex: 1; cursor: pointer;" oninput="updateDurationDisplay()">
-                                <span id="duration-display" style="min-width: 50px; font-weight: 600; background: white; padding: 0.5rem; border-radius: 4px; text-align: center;">60 min</span>
-                            </div>
-                        </div>
-                        <div>
-                            <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.4rem;">Total Marks</label>
-                            <input type="number" id="total-marks" class="ms-input" value="100" min="1" style="background: white;">
-                        </div>
-                        <div>
-                            <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.4rem;">Passing Marks</label>
-                            <input type="number" id="passing-marks" class="ms-input" value="40" min="1" style="background: white;">
-                        </div>
-                    </div>
-                    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                        <button class="ms-btn ms-btn-primary" onclick="saveExamSettings()">💾 Save Exam Settings</button>
-                        <button class="ms-btn ms-btn-secondary" onclick="loadExistingExam()">📂 Load Existing</button>
-                        <select id="existing-exams" class="ms-input" style="max-width: 200px; background: white;" onchange="loadSelectedExam()">
-                            <option value="">Select Existing Exam...</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Saved Exams List -->
-                <div class="ms-card" style="margin-bottom: 2rem;">
-                    <h3 style="margin-bottom: 1rem;">📋 Saved Exams</h3>
-                    <div id="saved-exams-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem;">
-                        <p style="color: var(--ms-grey-secondary);">Loading saved exams...</p>
-                    </div>
-                </div>
-
-                <!-- Add Question Form -->
-                <div class="ms-card" style="margin-bottom:2rem;">
-                    <h3 style="margin-bottom:1.25rem;font-size:1rem;">Add New Question</h3>
-
-                    <!-- Type selector -->
-                    <div style="margin-bottom:1rem;">
-                        <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.4rem;">Question Type</label>
-                        <select id="q-type-sel" class="ms-input" onchange="onQTypeChange()" style="max-width:220px;">
-                            <option value="mcq">📋 MCQ (Multiple Choice)</option>
-                            <option value="code">💻 Coding Question</option>
-                            <option value="theory">📖 Theory / Essay</option>
-                        </select>
-                    </div>
-
-                    <!-- Question text -->
-                    <div style="margin-bottom:1rem;">
-                        <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.4rem;">Question Text *</label>
-                        <textarea id="q-question" class="ms-input" rows="3"
-                            style="width:100%;resize:vertical;font-family:inherit;"
-                            placeholder="Enter the question..."></textarea>
-                    </div>
-
-                    <!-- MCQ-specific fields -->
-                    <div id="mcq-fields">
-                        <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.6rem;">Answer Options</label>
-                        <div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem;">
-                            <div style="display:flex;align-items:center;gap:.75rem;">
-                                <span style="width:28px;height:28px;background:var(--ms-blue);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0;">A</span>
-                                <input type="text" id="opt-a" class="ms-input" placeholder="Option A" style="flex:1;">
-                            </div>
-                            <div style="display:flex;align-items:center;gap:.75rem;">
-                                <span style="width:28px;height:28px;background:var(--ms-blue);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0;">B</span>
-                                <input type="text" id="opt-b" class="ms-input" placeholder="Option B" style="flex:1;">
-                            </div>
-                            <div style="display:flex;align-items:center;gap:.75rem;">
-                                <span style="width:28px;height:28px;background:var(--ms-blue);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0;">C</span>
-                                <input type="text" id="opt-c" class="ms-input" placeholder="Option C" style="flex:1;">
-                            </div>
-                            <div style="display:flex;align-items:center;gap:.75rem;">
-                                <span style="width:28px;height:28px;background:var(--ms-blue);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0;">D</span>
-                                <input type="text" id="opt-d" class="ms-input" placeholder="Option D" style="flex:1;">
-                            </div>
-                        </div>
-                        <div style="display:flex;align-items:center;gap:1rem;">
-                            <label style="font-size:.85rem;font-weight:600;">Correct Answer:</label>
-                            <select id="q-correct" class="ms-input" style="max-width:140px;">
-                                <option value="0">A</option>
-                                <option value="1">B</option>
-                                <option value="2">C</option>
-                                <option value="3">D</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Code-specific fields -->
-                    <div id="code-fields" style="display:none;">
-                        <div style="margin-bottom:1rem;">
-                            <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.4rem;">Starter Code / Prompt</label>
-                            <textarea id="q-code-prompt" class="ms-input" rows="5"
-                                style="width:100%;resize:vertical;font-family:'JetBrains Mono',monospace;font-size:.85rem;"
-                                placeholder="# Example:\ndef my_function(n):\n    pass"></textarea>
-                        </div>
-                        <div>
-                            <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.4rem;">Placeholder Text</label>
-                            <input type="text" id="q-placeholder" class="ms-input" style="width:100%;"
-                                placeholder="Write your Python function here…" value="Write your code here…">
-                        </div>
-                    </div>
-
-                    <!-- Theory-specific fields -->
-                    <div id="theory-fields" style="display:none;">
-                        <div>
-                            <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.4rem;">Placeholder Text</label>
-                            <input type="text" id="q-theory-placeholder" class="ms-input" style="width:100%;"
-                                placeholder="Type your answer here…" value="Type your detailed answer here…">
-                        </div>
-                    </div>
-
-                    <div style="margin-top:1.5rem;display:flex;gap:1rem;align-items:center;">
-                        <button class="ms-btn ms-btn-primary" onclick="submitQuestion()">➕ Add Question</button>
-                        <span id="q-form-msg" style="font-size:.85rem;"></span>
-                    </div>
-                </div>
-
-                <!-- Questions Table -->
-                <div class="ms-card">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-                        <h3 style="font-size:1rem;">All Questions <span id="q-count-badge" style="background:var(--ms-grey-light);border-radius:20px;padding:.1rem .6rem;font-size:.8rem;font-weight:400;">0</span></h3>
-                    </div>
-                    <table class="ms-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Type</th>
-                                <th>Question</th>
-                                <th>Options / Code</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="questions-tbody">
-                            <tr><td colspan="5" style="text-align:center;color:var(--ms-grey-secondary);">Loading questions…</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <!-- STUDENT PROFILE VIEW MODAL -->
-    <div class="modal-overlay" id="profile-modal">
-        <div class="modal-content" style="max-width: 600px;">
-            <div class="modal-header">
-                <h2 style="margin: 0; font-size: 1.25rem;">👤 Student Profile</h2>
-                <button class="ms-btn ms-btn-secondary" onclick="closeProfileModal()" style="border:none;background:transparent;font-size:1.2rem;cursor:pointer;">✕</button>
-            </div>
-            <div class="modal-body">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <div>
-                        <label style="font-size: 0.75rem; color: var(--ms-grey-secondary); text-transform: uppercase;">Student ID</label>
-                        <p style="margin: 0.25rem 0 0; font-weight: 600;" id="profile-student-id">-</p>
-                    </div>
-                    <div>
-                        <label style="font-size: 0.75rem; color: var(--ms-grey-secondary); text-transform: uppercase;">Username</label>
-                        <p style="margin: 0.25rem 0 0; font-weight: 600;" id="profile-username">-</p>
-                    </div>
-                    <div>
-                        <label style="font-size: 0.75rem; color: var(--ms-grey-secondary); text-transform: uppercase;">Full Name</label>
-                        <p style="margin: 0.25rem 0 0; font-weight: 600;" id="profile-full-name">-</p>
-                    </div>
-                    <div>
-                        <label style="font-size: 0.75rem; color: var(--ms-grey-secondary); text-transform: uppercase;">Phone</label>
-                        <p style="margin: 0.25rem 0 0; font-weight: 600;" id="profile-phone">-</p>
-                    </div>
-                    <div>
-                        <label style="font-size: 0.75rem; color: var(--ms-grey-secondary); text-transform: uppercase;">Year</label>
-                        <p style="margin: 0.25rem 0 0; font-weight: 600;" id="profile-year">-</p>
-                    </div>
-                    <div>
-                        <label style="font-size: 0.75rem; color: var(--ms-grey-secondary); text-transform: uppercase;">Department</label>
-                        <p style="margin: 0.25rem 0 0; font-weight: 600;" id="profile-department">-</p>
-                    </div>
-                </div>
-                <hr style="border: none; border-top: 1px solid var(--ms-grey-border); margin: 1rem 0;">
-                <h4 style="margin: 0 0 0.75rem;">Parent/Guardian Info</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <div>
-                        <label style="font-size: 0.75rem; color: var(--ms-grey-secondary); text-transform: uppercase;">Parent Name</label>
-                        <p style="margin: 0.25rem 0 0; font-weight: 600;" id="profile-parent-name">-</p>
-                    </div>
-                    <div>
-                        <label style="font-size: 0.75rem; color: var(--ms-grey-secondary); text-transform: uppercase;">Parent Phone</label>
-                        <p style="margin: 0.25rem 0 0; font-weight: 600;" id="profile-parent-phone">-</p>
-                    </div>
-                </div>
-                <hr style="border: none; border-top: 1px solid var(--ms-grey-border); margin: 1rem 0;">
-                <h4 style="margin: 0 0 0.75rem;">Additional Info</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <div>
-                        <label style="font-size: 0.75rem; color: var(--ms-grey-secondary); text-transform: uppercase;">GitHub Profile</label>
-                        <p style="margin: 0.25rem 0 0;"><a href="#" id="profile-git-link" target="_blank">-</a></p>
-                    </div>
-                    <div>
-                        <label style="font-size: 0.75rem; color: var(--ms-grey-secondary); text-transform: uppercase;">Resume</label>
-                        <p style="margin: 0.25rem 0 0;"><a href="#" id="profile-resume-link" target="_blank">-</a></p>
-                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- REPORT MODAL -->
-    <div class="modal-overlay" id="report-modal">
-        <div class="modal-content">
-            <div class="modal-header">
+        <!-- ===== LIVE MONITORING grid ===== -->
+        <div id="panel-proctoring" class="panel animate-in" style="display:none;">
+            <div class="page-header">
                 <div>
-                    <h2 style="margin: 0; font-size: 1.25rem;" id="rm-title">Student Assessment Report</h2>
-                    <p style="margin: 0; margin-top: 0.25rem; font-size: 0.85rem; color: var(--ms-grey-secondary);" id="rm-date">Processing...</p>
+                    <h1 style="margin:0; font-size:1.75rem; font-weight:800; letter-spacing:-1px;">Live Proctoring</h1>
+                    <p style="color:var(--admin-text-sec); margin:4px 0 0;">Real-time concurrent monitoring grid</p>
                 </div>
-                <button class="ms-btn ms-btn-secondary" onclick="document.getElementById('report-modal').style.display='none'">Close</button>
+                <button class="btn-action btn-primary" onclick="initMonitoring()">Refresh Feed</button>
             </div>
-            <div class="modal-body">
-                <div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 2rem;">
-                    <div class="kpi-card" style="padding: 1rem;"><div class="label">Total Warnings</div><div class="value" id="rm-warn">0</div></div>
-                    <div class="kpi-card" style="padding: 1rem;"><div class="label">Tab Switches</div><div class="value" id="rm-tabs">0</div></div>
-                    <div class="kpi-card" style="padding: 1rem;"><div class="label">Integrity Verdict</div><div class="value" id="rm-verdict" style="font-size: 1.2rem;">Unknown</div></div>
+            
+            <div id="monitor-grid" class="live-grid">
+                <!-- Monitor cards injected here -->
+                <div style="grid-column:1/-1; text-align:center; padding:10rem 2rem; color:var(--admin-text-sec);">
+                    <div style="font-size:4rem;">📺</div>
+                    <h3 style="margin:1rem 0 0.5rem;">System Standby</h3>
+                    <p>No active proctoring sessions detected currently.</p>
                 </div>
+            </div>
+        </div>
 
-                <div class="ms-grid" style="grid-template-columns: 1.5fr 1fr; gap: 1.5rem;">
-                    <div>
-                        <h3 style="margin-bottom: 1rem; font-size: 1rem;">Captured Evidence</h3>
-                        <p id="rm-no-evidence" style="color: var(--ms-grey-secondary); font-size: 0.85rem;">No evidence captured during this session.</p>
-                        <div class="ev-gallery" id="rm-gallery"></div>
-                    </div>
-                    <div>
-                        <h3 style="margin-bottom: 1rem; font-size: 1rem;">Session Event Log</h3>
-                        <div id="rm-events" style="border: 1px solid var(--ms-grey-border); border-radius: 4px; padding: 1rem; background: var(--ms-off-white); font-family: monospace; font-size: 0.8rem; overflow-y: auto; max-height: 400px; display: flex; flex-direction: column; gap: 0.5rem;">
-                            <!-- Events go here -->
-                        </div>
+        <!-- ===== MANAGE EXAMS ===== -->
+        <div id="panel-exams" class="panel animate-in" style="display:none;">
+            <div class="page-header">
+                <div>
+                    <h1 style="margin:0; font-size:1.75rem; font-weight:800; letter-spacing:-1px;">Manage Exams</h1>
+                    <p style="color:var(--admin-text-sec); margin:4px 0 0;">Create and configure exam schedules</p>
+                </div>
+                <button class="btn-action btn-primary" onclick="openCreateExamModal()">+ Create New Exam</button>
+            </div>
+            
+            <div class="panel-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                    <h3 style="margin:0;">Active Schedules</h3>
+                    <div style="display:flex; gap:10px; align-items:center; background:#f8fafc; padding:10px; border-radius:8px;">
+                        <span style="font-size:0.8rem; font-weight:700;">Bulk Generate Keys:</span>
+                        <input type="number" id="bulk-key-count" value="50" min="1" max="5000" class="ms-input" style="width:80px; padding:4px 8px;">
+                        <select id="bulk-key-exam" class="ms-input" style="width:150px; padding:4px 8px;">
+                            <option value="">Select Exam</option>
+                        </select>
+                        <button class="btn-action btn-primary" onclick="generateBulkKeys()" style="padding:6px 12px; font-size:0.75rem;">Generate</button>
                     </div>
                 </div>
+                <table class="ms-table">
+                    <thead>
+                        <tr>
+                            <th>Exam Name</th>
+                            <th>Duration</th>
+                            <th>Target Marks</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="exams-table-body">
+                        <!-- Injected -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ===== MANAGE QUESTIONS (Question Bank) ===== -->
+        <div id="panel-questions" class="panel animate-in" style="display:none;">
+            <div class="page-header">
+                <div>
+                    <h1 style="margin:0; font-size:1.75rem; font-weight:800; letter-spacing:-1px;">Question Bank</h1>
+                    <p style="color:var(--admin-text-sec); margin:4px 0 0;">Global repository of assessment questions</p>
+                </div>
+                <div style="display:flex; gap:1rem; align-items:center;">
+                    <select id="filter-exam" class="ms-input" style="width:200px;" onchange="loadQuestions()">
+                        <option value="">All Exams</option>
+                    </select>
+                    <button class="btn-action btn-primary" onclick="openAddQuestionModal()">+ Add Question</button>
+                </div>
+            </div>
+
+            <div class="panel-card">
+                <div id="qlist-content">
+                    <table class="ms-table">
+                        <thead>
+                            <tr>
+                                <th>Question</th>
+                                <th>Type</th>
+                                <th>Exam Name</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="questions-table-body">
+                            <!-- Injected -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== STUDENT DIRECTORY ===== -->
+<!-- panel-students removed -->
+
+        <!-- ===== SESSION REPORTS & EVIDENCE ===== -->
+        <div id="panel-reports" class="panel animate-in" style="display:none;">
+            <div class="page-header">
+                <div>
+                    <h1 style="margin:0; font-size:1.75rem; font-weight:800; letter-spacing:-1px;">Audit Reports</h1>
+                    <p style="color:var(--admin-text-sec); margin:4px 0 0;">Historical proctoring logs and evidence</p>
+                </div>
+            </div>
+            <div class="panel-card">
+                <table class="ms-table">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Exam</th>
+                            <th>Time</th>
+                            <th>Verdict</th>
+                            <th>Hazards</th>
+                            <th>Audit</th>
+                        </tr>
+                    </thead>
+                    <tbody id="session-reports-body">
+                        <!-- Injected -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ===== SUPPORT CHAT ===== -->
+        <div id="panel-chat" class="panel animate-in" style="display:none;">
+            <div class="page-header">
+                <div>
+                    <h1 style="margin:0; font-size:1.75rem; font-weight:800; letter-spacing:-1px;">Support Queries</h1>
+                    <p style="color:var(--admin-text-sec); margin:4px 0 0;">Direct communication with students</p>
+                </div>
+                <div id="unread-queries-pill" class="badge badge-danger">0 UNREAD</div>
+            </div>
+            <div id="queries-container">
+                <!-- Chat threads -->
+            </div>
+        </div>
+
+        <!-- ===== SYSTEM CONFIG ===== -->
+        <div id="panel-settings" class="panel animate-in" style="display:none;">
+            <div class="page-header">
+                <div>
+                    <h1 style="margin:0; font-size:1.75rem; font-weight:800; letter-spacing:-1px;">System Settings</h1>
+                    <p style="color:var(--admin-text-sec); margin:4px 0 0;">Core infrastructure configuration</p>
+                </div>
+            </div>
+            <div class="panel-card">
+                <h3>🛠️ Integrity Thresholds</h3>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:2rem; margin-top:1.5rem;">
+                    <div>
+                        <label style="display:block; margin-bottom:8px; font-weight:700;">Max Warnings</label>
+                        <input type="number" class="ms-input" value="15">
+                    </div>
+                    <div>
+                        <label style="display:block; margin-bottom:8px; font-weight:700;">Max Tab Switches</label>
+                        <input type="number" class="ms-input" value="3">
+                    </div>
+                </div>
+                <button class="btn-action btn-primary" style="margin-top:2rem;">Save Configuration</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- ===== MODALS ===== -->
+    <div id="report-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+        <div class="panel-card" style="width:100%; max-width:1000px; max-height:85vh; overflow-y:auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
+                <h2 id="report-title" style="margin:0;">Session Audit</h2>
+                <button class="btn-action" onclick="closeModal('report-modal')">Close</button>
+            </div>
+            <div id="report-content" style="display:grid; grid-template-columns: 1fr 300px; gap:2rem;">
+                <!-- Content -->
             </div>
         </div>
     </div>
 
     <script>
-        // SPA Tab Switching Logic
-        function switchSection(sectionId, element) {
-            document.querySelectorAll('.admin-section').forEach(sec => sec.style.display = 'none');
-            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+        // PANEL SWITCHING
+        function switchPanel(pid, el) {
+            document.querySelectorAll('.panel').forEach(p => p.style.display = 'none');
+            document.getElementById('panel-' + pid).style.display = 'block';
             
-            document.getElementById('sec-' + sectionId).style.display = 'block';
-            if (element) element.classList.add('active');
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            if (el) el.classList.add('active');
+
+            // Load panel data
+            if (pid === 'dashboard') loadDashboard();
+            if (pid === 'proctoring') initMonitoring();
+            if (pid === 'exams') loadExams();
+            if (pid === 'questions') { loadExamOptions(); loadQuestions(); }
+            if (pid === 'students') loadStudents();
+            if (pid === 'reports') loadReports();
+            if (pid === 'chat') loadQueries();
         }
 
-        // Schedule Modal Logic
-        function openScheduleModal() {
-            document.getElementById('sch-name').value = '';
-            document.getElementById('sch-date').value = '';
-            document.getElementById('sch-students').value = '';
-            document.getElementById('schedule-modal').style.display = 'flex';
-        }
-
-        function closeScheduleModal() {
-            document.getElementById('schedule-modal').style.display = 'none';
-        }
-
-        function saveSchedule() {
-            const name = document.getElementById('sch-name').value.trim();
-            const dateStr = document.getElementById('sch-date').value;
-            const students = document.getElementById('sch-students').value || '0';
-
-            if (!name || !dateStr) {
-                alert("Please fill in the exam name and date.");
-                return;
-            }
-
-            // Format date nicely
-            const d = new Date(dateStr);
-            const options = { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' };
-            const formattedDate = d.toLocaleDateString(undefined, options);
-
-            const tbody = document.getElementById('schedules-tbody');
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><strong>${name}</strong></td>
-                <td>${formattedDate}</td>
-                <td>${students}</td>
-                <td><a href="#" onclick="alert('Edit mode not available yet')" style="color: var(--ms-blue);">Edit</a></td>
-            `;
-            tbody.insertBefore(tr, tbody.firstChild);
-
-            closeScheduleModal();
-        }
-
-        // Evidence Loading
-        function loadEvidence() {
-            const grid = document.getElementById('evidence-grid');
-            grid.innerHTML = '<p style="color: var(--ms-grey-secondary);">Loading evidence...</p>';
-            
-            fetch('/api/evidence').then(r => r.json()).then(evidence => {
-                if (!evidence || evidence.length === 0) {
-                    grid.innerHTML = '<p style="color: var(--ms-grey-secondary);">No active evidence captured yet.</p>';
-                    return;
-                }
-                grid.innerHTML = evidence.map(ev => `
-                    <div style="border: 1px solid var(--ms-grey-border); border-radius: 4px; overflow: hidden; background: var(--ms-white); box-shadow: var(--ms-shadow);">
-                        <img src="/static/evidence/${ev.file}" style="width: 100%; aspect-ratio: 4/3; object-fit: cover;" alt="Evidence">
-                        <div style="padding: 0.75rem;">
-                            <div style="font-size: 0.8rem; font-weight: 600; color: var(--ms-danger); margin-bottom: 0.25rem;">${ev.msg}</div>
-                            <div style="font-size: 0.75rem; color: var(--ms-grey-secondary); display: flex; justify-content: space-between;">
-                                <span>${new Date(ev.timestamp * 1000).toLocaleTimeString()}</span>
-                                <a href="#" onclick="deleteEvidence('${ev.file}')" style="color: var(--ms-danger);">Delete</a>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-            }).catch(e => {
-                grid.innerHTML = '<p style="color: var(--ms-danger);">Failed to load evidence.</p>';
-            });
-        }
-
-        function deleteEvidence(filename) {
-            if(!confirm("Delete this evidence?")) return;
-            fetch('/api/evidence/' + filename, { method: 'DELETE' }).then(() => loadEvidence());
-        }
-
-        // Students Loading
-        let allStudentsData = [];
-        let currentYearFilter = 'all';
-
-        async function loadStudents() {
-            const tbody = document.getElementById('students-tbody');
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Loading...</td></tr>';
-            
-            try {
-                const resp = await fetch('/api/admin/student-profiles');
-                allStudentsData = await resp.json();
-                
-                document.getElementById('year-1-count').textContent = allStudentsData.filter(s => s.year === '1st Year').length;
-                document.getElementById('year-2-count').textContent = allStudentsData.filter(s => s.year === '2nd Year').length;
-                document.getElementById('year-3-count').textContent = allStudentsData.filter(s => s.year === '3rd Year').length;
-                document.getElementById('year-4-count').textContent = allStudentsData.filter(s => s.year === '4th Year').length;
-                
-                renderStudentsTable(allStudentsData);
-            } catch(e) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--ms-danger);">Error loading students.</td></tr>';
-            }
-        }
-
-        function filterStudentsByYear(year) {
-            currentYearFilter = year;
-            document.querySelectorAll('[id^="filter-"]').forEach(btn => {
-                btn.classList.remove('ms-btn-primary');
-                btn.classList.add('ms-btn-secondary');
-            });
-            document.getElementById('filter-' + (year === 'all' ? 'all' : year.replace(' ', '-'))).classList.remove('ms-btn-secondary');
-            document.getElementById('filter-' + (year === 'all' ? 'all' : year.replace(' ', '-'))).classList.add('ms-btn-primary');
-            
-            const filtered = year === 'all' ? allStudentsData : allStudentsData.filter(s => s.year === year);
-            renderStudentsTable(filtered);
-        }
-
-        function renderStudentsTable(students) {
-            const tbody = document.getElementById('students-tbody');
-            if (!students || students.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--ms-grey-secondary);">No students found.</td></tr>';
-                return;
-            }
-            
-            const yearColors = {
-                '1st Year': '#3b82f6',
-                '2nd Year': '#10b981',
-                '3rd Year': '#f59e0b',
-                '4th Year': '#8b5cf6'
-            };
-            
-            tbody.innerHTML = students.map(st => `
+        async function loadExams() {
+            const resp = await fetch('/api/admin/exams');
+            const data = await resp.json();
+            const tbody = document.getElementById('exams-table-body');
+            tbody.innerHTML = data.map(ex => `
                 <tr>
-                    <td><strong>${st.student_id || '-'}</strong></td>
-                    <td>${st.username}</td>
-                    <td><span style="background: ${yearColors[st.year] || '#64748b'}22; color: ${yearColors[st.year] || '#64748b'}; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">${st.year || 'Not Set'}</span></td>
-                    <td>${st.department || '-'}</td>
-                    <td>
-                        <button class="ms-btn ms-btn-primary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; margin-right: 0.25rem;" onclick="viewStudentProfile('${st.username}')">🔍 View</button>
-                        <button class="ms-btn ms-btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; margin-right: 0.25rem;" onclick="editStudent('${st.username}', '${st.student_id || ''}', '${st.year || '1st Year'}', '${st.department || ''}')">Edit</button>
-                        <button class="ms-btn ms-btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; color: var(--ms-danger); border-color: var(--ms-danger);" onclick="deleteStudent('${st.username}')">Remove</button>
-                    </td>
+                    <td style="font-weight:700;">${ex.exam_name}</td>
+                    <td>${ex.duration} mins</td>
+                    <td>${ex.total_marks}</td>
+                    <td><span class="badge ${ex.is_active ? 'badge-success' : 'badge-danger'}">${ex.is_active ? 'ACTIVE' : 'INACTIVE'}</span></td>
+                    <td><button class="btn-action" onclick="switchPanel('questions')">Questions</button></td>
                 </tr>
             `).join('');
         }
 
-        function openAddStudentModal() {
-            document.getElementById('new-student-id').value = '';
-            document.getElementById('new-username').value = '';
-            document.getElementById('new-year').value = '1st Year';
-            document.getElementById('new-department').value = 'Computer Science';
-            document.getElementById('new-password').value = '';
-            document.getElementById('add-student-modal').style.display = 'flex';
+        async function loadExamOptions() {
+            const resp = await fetch('/api/admin/exams');
+            const data = await resp.json();
+            const select = document.getElementById('filter-exam');
+            const current = select.value;
+            select.innerHTML = '<option value="">All Exams</option>' + 
+                data.map(ex => `<option value="${ex.exam_name}" ${current === ex.exam_name ? 'selected' : ''}>${ex.exam_name}</option>`).join('');
         }
 
-        function closeAddStudentModal() {
-            document.getElementById('add-student-modal').style.display = 'none';
+        // --- DASHBOARD ---
+        async function loadDashboard() {
+            try {
+                const [stats, sessions] = await Promise.all([
+                    fetch('/api/admin/dashboard-stats').then(r=>r.json()).catch(() => ({})),
+                    fetch('/api/sessions').then(r=>r.json()).catch(() => [])
+                ]);
+                
+                document.getElementById('stat-active').textContent = stats.total_sessions || 0;
+                document.getElementById('stat-warnings').textContent = stats.unread_queries || 0;
+                
+                const tbody = document.getElementById('recent-assessments-body');
+                if (sessions && Array.isArray(sessions)) {
+                    tbody.innerHTML = sessions.slice(0, 5).map(s => {
+                        const verdict = s.verdict || 'pending';
+                        return `
+                        <tr>
+                            <td style="font-weight:700;">${s.student}</td>
+                            <td>${new Date(s.ended_at * 1000).toLocaleString()}</td>
+                            <td><span class="badge badge-${verdict === 'pass' ? 'success' : verdict === 'fail' ? 'danger' : 'warning'}">${verdict.toUpperCase()}</span></td>
+                            <td style="font-weight:800; color:${s.warnings > 10 ? '#ef4444' : '#f59e0b'}">${s.warnings}</td>
+                            <td><button class="btn-action" onclick="viewAudit('${s.id}')">View Report</button></td>
+                        </tr>
+                    `}).join('');
+                    if(!sessions.length) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:2rem; color:var(--admin-text-sec);">No sessions found.</td></tr>';
+                }
+            } catch(e) { console.error("Dashboard error:", e); }
         }
 
-        async function addStudentManually() {
-            const studentId = document.getElementById('new-student-id').value.trim();
-            const username = document.getElementById('new-username').value.trim();
-            const year = document.getElementById('new-year').value;
-            const department = document.getElementById('new-department').value;
-            const password = document.getElementById('new-password').value;
+        // --- LIVE MONITORING ---
+        let monInterval = null;
+        async function initMonitoring() {
+            if (monInterval) clearInterval(monInterval);
+            pollActive();
+            monInterval = setInterval(pollActive, 4000);
+        }
+
+        async function pollActive() {
+            const resp = await fetch('/api/active_students');
+            const data = await resp.json();
+            const grid = document.getElementById('monitor-grid');
             
-            if (!studentId || !username || !password) {
-                alert('Student ID, Username, and Password are required');
+            if (!data.length) {
+                grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:10rem 2rem; color:var(--admin-text-sec);"><div style="font-size:4rem;">📺</div><h3 style="margin:1rem 0 0.5rem;">System Standby</h3><p>No active proctoring sessions detected.</p></div>';
                 return;
             }
-            
-            try {
-                const resp = await fetch('/api/admin/add-student', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({username, password, student_id: studentId, year, department})
-                });
-                const data = await resp.json();
-                if (data.error) {
-                    alert(data.error);
-                } else {
-                    alert('Student added successfully!');
-                    closeAddStudentModal();
-                    loadStudents();
-                }
-            } catch(e) {
-                alert('Error adding student');
-            }
-        }
 
-        function editStudent(username, studentId, year, department) {
-            document.getElementById('edit-username').value = username;
-            document.getElementById('edit-student-id').value = studentId;
-            document.getElementById('edit-year').value = year;
-            document.getElementById('edit-department').value = department;
-            document.getElementById('edit-student-modal').style.display = 'flex';
-        }
-
-        function closeEditStudentModal() {
-            document.getElementById('edit-student-modal').style.display = 'none';
-        }
-
-        async function saveStudentEdit() {
-            const username = document.getElementById('edit-username').value;
-            const studentId = document.getElementById('edit-student-id').value;
-            const year = document.getElementById('edit-year').value;
-            const department = document.getElementById('edit-department').value;
-            
-            try {
-                await fetch('/api/admin/student-profiles/' + username, {
-                    method: 'PUT',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({student_id: studentId, year, department})
-                });
-                alert('Student profile updated!');
-                closeEditStudentModal();
-                loadStudents();
-            } catch(e) {
-                alert('Error updating student');
-            }
-        }
-
-        function deleteStudent(username) {
-            if(!confirm("Permanently delete student: " + username + "?")) return;
-            fetch('/api/users/' + username, { method: 'DELETE' }).then(r => r.json()).then(res => {
-                if (res.error) alert(res.error);
-                else loadStudents();
-            });
-        }
-
-        async function viewStudentProfile(username) {
-            try {
-                const resp = await fetch('/api/student/profile/' + username);
-                const profile = await resp.json();
-                document.getElementById('profile-student-id').textContent = profile.student_id || '-';
-                document.getElementById('profile-username').textContent = profile.username;
-                document.getElementById('profile-full-name').textContent = profile.full_name || 'Not Set';
-                document.getElementById('profile-phone').textContent = profile.phone || '-';
-                document.getElementById('profile-year').textContent = profile.year || '-';
-                document.getElementById('profile-department').textContent = profile.department || '-';
-                document.getElementById('profile-parent-name').textContent = profile.parent_name || 'Not Set';
-                document.getElementById('profile-parent-phone').textContent = profile.parent_phone || 'Not Set';
-                const gitLink = document.getElementById('profile-git-link');
-                if (profile.git_profile) {
-                    gitLink.href = profile.git_profile;
-                    gitLink.textContent = profile.git_profile;
-                } else {
-                    gitLink.href = '#';
-                    gitLink.textContent = '-';
-                }
-                const resumeLink = document.getElementById('profile-resume-link');
-                if (profile.resume_path) {
-                    resumeLink.href = profile.resume_path;
-                    resumeLink.textContent = 'View Resume';
-                } else {
-                    resumeLink.href = '#';
-                    resumeLink.textContent = 'Not Uploaded';
-                }
-                document.getElementById('profile-modal').style.display = 'flex';
-            } catch(e) {
-                alert('Error loading profile');
-            }
-        }
-
-        function closeProfileModal() {
-            document.getElementById('profile-modal').style.display = 'none';
-        }
-        const SEV_ICONS = { high: '🔴', medium: '🟡', low: '🟢' };
-        let seenEvents = new Set(), seenEvidence = new Set(), isExamActive = false;
-
-        // Controls
-        document.getElementById('adminStartBtn').addEventListener('click', () => {
-            fetch('/api/control', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'start'}) });
-            addLog('Exam session started.', 'info');
-        });
-        document.getElementById('adminStopBtn').addEventListener('click', () => {
-            fetch('/api/control', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'stop'}) });
-            addLog('Exam session stopped.', 'info');
-        });
-
-        function addLog(text, type='warning') {
-            const e = document.createElement('div');
-            e.className = `log-entry ${type}-msg`;
-            e.innerHTML = `<span class="log-time">${new Date().toLocaleTimeString()}</span> <span class="log-text">${text}</span>`;
-            const log = document.getElementById('admin-log');
-            log.insertBefore(e, log.firstChild);
-        }
-
-        // Main poll
-        setInterval(() => {
-            fetch('/api/stats').then(r => r.json()).then(data => {
-                document.getElementById('kpi-warnings').textContent = data.warnings;
-                document.getElementById('exam-badge').textContent = data.is_active ? '1 Active' : '0';
-                
-                const vs = data.vision_status || '–';
-                const kv = document.getElementById('kpi-vision');
-                kv.textContent = vs;
-                kv.style.color = vs.includes('⚠') ? 'var(--ms-danger)' : vs === 'Normal' ? 'var(--ms-success)' : 'var(--ms-grey-secondary)';
-                
-                isExamActive = data.is_active;
-                document.getElementById('adminStartBtn').disabled = isExamActive;
-                document.getElementById('adminStopBtn').disabled  = !isExamActive;
-
-                (data.events||[]).forEach(ev => {
-                    const id = `${ev.timestamp}-${ev.msg}`;
-                    if (!seenEvents.has(id)) { seenEvents.add(id); addLog(ev.msg); }
-                });
-            }).catch(() => {});
-        }, 2000);
-
-        function loadSessions() {
-            fetch('/api/sessions').then(r => r.json()).then(sessions => {
-                const tbody = document.getElementById('exam-tbody');
-                if (!sessions || sessions.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--ms-grey-secondary);">No records found.</td></tr>';
-                    return;
-                }
-                tbody.innerHTML = '';
-                sessions.forEach(s => {
-                    const dt = new Date(s.ended_at * 1000).toLocaleString();
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td><strong>${s.student || 'Unknown'}</strong></td>
-                        <td>${dt}</td>
-                        <td><span class="ms-badge ${s.warnings >= 5 ? 'ms-badge-danger' : 'ms-badge-success'}">${s.warnings >= 5 ? 'Fail' : 'Pass'}</span></td>
-                        <td>${s.warnings}</td>
-                        <td><a href="#" onclick="viewReport('${s.id}')" style="color: var(--ms-blue);">View Report</a></td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            });
-        }
-
-        function viewReport(sessionId) {
-            fetch('/api/sessions/' + sessionId).then(r => r.json()).then(data => {
-                const isFail = data.warnings >= 5 || data.tab_switches >= 3;
-                
-                document.getElementById('rm-title').textContent = `${data.student || 'Unknown'}'s Assessment Report`;
-                document.getElementById('rm-date').textContent = new Date(data.started_at * 1000).toLocaleString() + ' — ' + new Date(data.ended_at * 1000).toLocaleString();
-                
-                document.getElementById('rm-warn').textContent = data.warnings || 0;
-                document.getElementById('rm-warn').style.color = (data.warnings || 0) >= 15 ? 'var(--ms-danger)' : 'var(--ms-blue)';
-                
-                document.getElementById('rm-tabs').textContent = data.tab_switches || 0;
-                document.getElementById('rm-tabs').style.color = (data.tab_switches || 0) >= 3 ? 'var(--ms-danger)' : 'var(--ms-blue)';
-                
-                document.getElementById('rm-verdict').textContent = isFail ? 'Failed (High Variance)' : 'Passed (Normal)';
-                document.getElementById('rm-verdict').style.color = isFail ? 'var(--ms-danger)' : 'var(--ms-success)';
-
-                const gal = document.getElementById('rm-gallery');
-                const noEv = document.getElementById('rm-no-evidence');
-                if (data.evidence && data.evidence.length > 0) {
-                    noEv.style.display = 'none';
-                    gal.style.display = 'grid';
-                    gal.innerHTML = data.evidence.map(e => `
-                        <div title="${e.msg}"><img src="/static/evidence/${e.file}"></div>
-                    `).join('');
-                } else {
-                    noEv.style.display = 'block';
-                    gal.style.display = 'none';
-                }
-
-                const evLog = document.getElementById('rm-events');
-                if (data.events && data.events.length > 0) {
-                    evLog.innerHTML = data.events.map(e => `
-                        <div><span style="color:#64748b; margin-right:8px;">${new Date(e.timestamp * 1000).toLocaleTimeString()}</span> ${e.msg}</div>
-                    `).join('');
-                } else {
-                    evLog.innerHTML = `<span style="color:#64748b;">No notable events recorded.</span>`;
-                }
-
-                document.getElementById('report-modal').style.display = 'flex';
-            }).catch(e => {
-                alert('Could not load report details: ' + e);
-            });
-        }
-
-        loadSessions();
-        setInterval(loadSessions, 15000);
-
-        // ── LIVE STUDENT MONITOR LOGIC ───────────────────────────────────────
-        let knownStudents = new Set();
-
-        function updateMonitorStream() {
-            const select = document.getElementById('student-monitor-select');
-            const img = document.getElementById('admin-video-feed');
-            const placeholder = document.getElementById('no-feed-placeholder');
-            const indicator = document.getElementById('live-indicator');
-            const student = select.value;
-
-            if (student) {
-                img.src = `/admin/stream/${student}?t=${new Date().getTime()}`;
-                img.style.display = 'block';
-                placeholder.style.display = 'none';
-                indicator.style.display = 'block';
-            } else {
-                img.src = '';
-                img.style.display = 'none';
-                placeholder.style.display = 'block';
-                indicator.style.display = 'none';
-            }
-        }
-
-        async function pollActiveStudents() {
-            try {
-                // Infer active students from total stats or we could add a dedicated /api/active
-                const resp = await fetch('/api/stats');
-                const data = await resp.json();
-                
-                const select = document.getElementById('student-monitor-select');
-                if (data.student && !knownStudents.has(data.student)) {
-                    knownStudents.add(data.student);
-                    const opt = document.createElement('option');
-                    opt.value = data.student;
-                    opt.textContent = data.student + " (Live)";
-                    select.appendChild(opt);
-                }
-            } catch (e) {
-                console.error("Monitor poll error:", e);
-            }
-        }
-        setInterval(pollActiveStudents, 3000);
-        pollActiveStudents();
-
-        // ════════════════════════════════════════════════════════════════════
-        // LIVE PROCTORING GRID — full student feed cards
-        // ════════════════════════════════════════════════════════════════════
-        let livePollTimer = null;
-
-        function startLivePoll() {
-            refreshLiveStudents();
-            if (!livePollTimer) {
-                livePollTimer = setInterval(refreshLiveStudents, 3000);
-            }
-        }
-
-        async function refreshLiveStudents() {
-            try {
-                const resp = await fetch('/api/active_students');
-                const students = await resp.json();
-                renderLiveGrid(students);
-            } catch(e) {
-                console.error('Live poll error:', e);
-            }
-        }
-
-        function renderLiveGrid(students) {
-            const grid    = document.getElementById('live-student-grid');
-            const noEl    = document.getElementById('live-no-students');
-            const countEl = document.getElementById('live-student-count');
-            if (!grid) return;
-            countEl.textContent = students.length + ' student' + (students.length !== 1 ? 's' : '') + ' online';
-
-            if (!students.length) {
-                noEl.style.display = 'block';
-                Array.from(grid.children).forEach(c => { if (c.id !== 'live-no-students') c.remove(); });
-                return;
-            }
-            noEl.style.display = 'none';
-
-            const activeSet = new Set(students.map(s => s.username));
-
-            // Remove cards for students who left
-            grid.querySelectorAll('.live-card').forEach(card => {
-                if (!activeSet.has(card.dataset.username)) card.remove();
-            });
-
-            // Add/update cards for active students
-            students.forEach(s => {
-                let card = grid.querySelector(`.live-card[data-username="${s.username}"]`);
-                if (!card) {
-                    card = document.createElement('div');
-                    card.className = 'live-card';
-                    card.dataset.username = s.username;
-                    card.style.cssText = `
-                        background:var(--ms-white); border:1px solid var(--ms-grey-border);
-                        border-radius:var(--ms-radius); overflow:hidden; box-shadow:var(--ms-shadow);
-                    `;
-                    card.innerHTML = `
-                        <div style="background:#000;position:relative;aspect-ratio:4/3;">
-                            <img src="/admin/stream/${s.username}" alt="${s.username}" loading="lazy"
-                                style="width:100%;height:100%;object-fit:cover;display:block;"
-                                onerror="this.style.opacity='.3'">
-                            <div style="position:absolute;top:.6rem;right:.6rem;
-                                background:rgba(220,38,38,.85);color:#fff;padding:.2rem .6rem;
-                                border-radius:40px;font-size:.7rem;font-weight:700;
-                                display:flex;align-items:center;gap:.3rem;">
-                                <span style="width:6px;height:6px;background:#fff;border-radius:50%;
-                                    animation:pulse 1s infinite;"></span> LIVE
-                            </div>
+            grid.innerHTML = data.map(s => `
+                <div class="monitor-card animate-in">
+                    <div class="stream-view">
+                        <div class="live-tag"><span>●</span> LIVE</div>
+                        <img src="/admin/stream/${s.username}" class="stream-img">
+                    </div>
+                    <div style="padding:1.25rem; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div style="font-weight:800; font-size:1rem;">${s.username}</div>
+                            <div style="font-size:0.75rem; color:var(--admin-text-sec);">Session ID: ${s.session_id.slice(0,8)}...</div>
                         </div>
-                        <div style="padding:.9rem 1rem;display:flex;justify-content:space-between;align-items:center;">
-                            <div>
-                                <div style="font-weight:700;font-size:.9rem;">${s.username}</div>
-                                <div style="font-size:.75rem;color:var(--ms-grey-secondary);margin-top:.15rem;">
-                                    ${s.is_active ? '● Active Exam' : '○ Connected'}
-                                </div>
-                            </div>
-                            <div style="display:flex;align-items:center;gap:.5rem;">
-                                <div class="lc-warn" style="
-                                    background:${s.warnings>0?'rgba(244,63,94,.1)':'rgba(16,185,129,.1)'};
-                                    border:1px solid ${s.warnings>0?'rgba(244,63,94,.3)':'rgba(16,185,129,.3)'};
-                                    color:${s.warnings>0?'#f43f5e':'#10b981'};
-                                    border-radius:8px;padding:.25rem .6rem;font-size:.75rem;font-weight:700;
-                                ">${s.warnings} ⚠</div>
-                                <button onclick="openFS('${s.username}')" style="
-                                    background:var(--ms-blue);color:#fff;border:none;
-                                    padding:.3rem .7rem;border-radius:6px;font-size:.75rem;
-                                    cursor:pointer;font-weight:600;">⛶ Full</button>
-                            </div>
-                        </div>`;
-                    grid.appendChild(card);
-                } else {
-                    // Update warning badge
-                    const warnEl = card.querySelector('.lc-warn');
-                    if (warnEl) {
-                        warnEl.textContent = s.warnings + ' ⚠';
-                        warnEl.style.background  = s.warnings>0 ? 'rgba(244,63,94,.1)' : 'rgba(16,185,129,.1)';
-                        warnEl.style.borderColor = s.warnings>0 ? 'rgba(244,63,94,.3)' : 'rgba(16,185,129,.3)';
-                        warnEl.style.color       = s.warnings>0 ? '#f43f5e' : '#10b981';
-                    }
-                }
-            });
+                        <div style="text-align:right;">
+                            <div style="font-weight:800; color:${s.warnings > 10 ? '#ef4444' : '#f59e0b'}; font-size:1.1rem;">${s.warnings} Hazard(s)</div>
+                            <div style="font-size:0.75rem; color:var(--admin-text-sec);">${s.tab_switches} Tab Switches</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
         }
 
-        function openFS(username) {
-            const modal = document.getElementById('fs-modal');
-            document.getElementById('fs-label').textContent = '🎥 ' + username + ' — Live Feed';
-            document.getElementById('fs-feed').src = '/admin/stream/' + username + '?t=' + Date.now();
-            modal.style.display = 'flex';
-        }
-        function closeFSModal() {
-            document.getElementById('fs-modal').style.display = 'none';
-            document.getElementById('fs-feed').src = '';
-        }
-
-        // ════════════════════════════════════════════════════════════════════
-        // QUESTION BANK MANAGEMENT
-        // ════════════════════════════════════════════════════════════════════
-        function onQTypeChange() {
-            const type = document.getElementById('q-type-sel').value;
-            document.getElementById('mcq-fields')   .style.display = type === 'mcq'    ? 'block' : 'none';
-            document.getElementById('code-fields')  .style.display = type === 'code'   ? 'block' : 'none';
-            document.getElementById('theory-fields').style.display = type === 'theory' ? 'block' : 'none';
-        }
-
-        async function submitQuestion() {
-            const type     = document.getElementById('q-type-sel').value;
-            const question = document.getElementById('q-question').value.trim();
-            const msgEl    = document.getElementById('q-form-msg');
-
-            if (!question) { msgEl.textContent = '⚠ Question text is required.'; msgEl.style.color='#f43f5e'; return; }
-
-            let payload = { type, question };
-
-            if (type === 'mcq') {
-                const opts = [
-                    document.getElementById('opt-a').value.trim(),
-                    document.getElementById('opt-b').value.trim(),
-                    document.getElementById('opt-c').value.trim(),
-                    document.getElementById('opt-d').value.trim(),
-                ];
-                if (opts.some(o => !o)) { msgEl.textContent = '⚠ Fill in all 4 options.'; msgEl.style.color='#f43f5e'; return; }
-                payload.options        = opts;
-                payload.correct_answer = parseInt(document.getElementById('q-correct').value);
-            } else if (type === 'code') {
-                payload.code_prompt = document.getElementById('q-code-prompt').value;
-                payload.placeholder = document.getElementById('q-placeholder').value;
-            } else {
-                payload.placeholder = document.getElementById('q-theory-placeholder').value;
-            }
-
-            msgEl.textContent = '⏳ Saving…'; msgEl.style.color = '#64748b';
-            try {
-                const resp = await fetch('/api/admin/questions', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(payload)
-                });
-                const data = await resp.json();
-                if (data.error) throw new Error(data.error);
-                msgEl.textContent = '✅ Question added!';
-                msgEl.style.color = '#10b981';
-                document.getElementById('q-question').value = '';
-                ['opt-a','opt-b','opt-c','opt-d'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.value = '';
-                });
-                document.getElementById('q-code-prompt').value  = '';
-                loadAdminQuestions();
-                setTimeout(() => { msgEl.textContent = ''; }, 3000);
-            } catch(e) {
-                msgEl.textContent = '❌ Error: ' + e.message;
-                msgEl.style.color = '#f43f5e';
-            }
-        }
-
-        async function loadAdminQuestions() {
-            const tbody  = document.getElementById('questions-tbody');
-            const badge  = document.getElementById('q-count-badge');
-            if (!tbody) return;
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--ms-grey-secondary);">Loading…</td></tr>';
-            try {
-                const resp = await fetch('/api/admin/questions');
-                const qs   = await resp.json();
-                badge.textContent = qs.length;
-                if (!qs.length) {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--ms-grey-secondary);">No questions yet. Add one above.</td></tr>';
-                    return;
-                }
-                const TYPE_COLORS = { mcq:'#0078d4', code:'#107c10', theory:'#7c3aed' };
-                const TYPE_LABELS = { mcq:'📋 MCQ', code:'💻 Code', theory:'📖 Theory' };
-                tbody.innerHTML = qs.map(q => {
-                    let detail = '';
-                    if (q.type === 'mcq' && q.options) {
-                        detail = (q.options||[]).map((o,i) =>
-                            `<span style="color:${i===q.correct_answer?'#10b981':'inherit'};font-size:.8rem;">${'ABCD'[i]}: ${o}${i===q.correct_answer?' ✓':''}</span>`
-                        ).join('<br>');
-                    } else if (q.type === 'code') {
-                        detail = `<code style="font-size:.78rem;color:#64748b;">${(q.code_prompt||'').substring(0,60)}…</code>`;
-                    } else {
-                        detail = `<span style="font-size:.8rem;color:#64748b;">${q.placeholder||'—'}</span>`;
-                    }
-                    return `<tr>
-                        <td style="font-size:.8rem;color:#94a3b8;">#${q.id}</td>
-                        <td><span style="background:${TYPE_COLORS[q.type]||'#64748b'}22;
-                            color:${TYPE_COLORS[q.type]||'#64748b'};
-                            border:1px solid ${TYPE_COLORS[q.type]||'#64748b'}44;
-                            padding:.2rem .6rem;border-radius:20px;font-size:.75rem;font-weight:700;
-                            ">${TYPE_LABELS[q.type]||q.type}</span></td>
-                        <td style="max-width:260px;">${q.question}</td>
-                        <td style="max-width:220px;">${detail}</td>
-                        <td><button class="ms-btn ms-btn-secondary"
-                            style="padding:.3rem .7rem;font-size:.8rem;color:var(--ms-danger);border-color:var(--ms-danger);"
-                            onclick="deleteQuestion(${q.id})">🗑 Delete</button></td>
-                    </tr>`;
-                }).join('');
-            } catch(e) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--ms-danger);">Error loading questions.</td></tr>`;
-            }
+        // --- QUESTIONS ---
+        async function loadQuestions() {
+            const examFilter = document.getElementById('filter-exam').value;
+            let url = '/api/admin/questions';
+            if (examFilter) url += '?exam_name=' + encodeURIComponent(examFilter);
+            
+            const resp = await fetch(url);
+            const data = await resp.json();
+            const tbody = document.getElementById('questions-table-body');
+            tbody.innerHTML = data.map(q => `
+                <tr>
+                    <td style="max-width:400px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${q.question}</td>
+                    <td><span class="badge ${q.type === 'mcq' ? 'badge-success' : q.type === 'code' ? 'badge-warning' : 'badge-danger'}">${q.type.toUpperCase()}</span></td>
+                    <td>${q.exam_name || '<span style="color:#94a3b8">Unassigned</span>'}</td>
+                    <td>
+                        <button class="btn-action" onclick="deleteQuestion(${q.id})" title="Delete">🗑️</button>
+                    </td>
+                </tr>
+            `).join('');
+            if(!data.length) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:3rem; color:var(--admin-text-sec);">No questions found for this selection.</td></tr>';
         }
 
         async function deleteQuestion(id) {
-            if (!confirm('Delete this question from the bank?')) return;
-            const resp = await fetch('/api/admin/questions/' + id, { method: 'DELETE' });
+            if(confirm('Delete this question?')) {
+                await fetch(`/api/questions/${id}`, { method: 'DELETE' });
+                loadQuestions();
+            }
+        }
+
+        // --- STUDENTS ---
+        async function loadStudents() {
+            const resp = await fetch('/api/admin/students');
             const data = await resp.json();
-            if (data.error) { alert('Error: ' + data.error); return; }
-            loadAdminQuestions();
-        }
-
-        // ════════════════════════════════════════════════════════════════════
-        // EXAM SETTINGS MANAGEMENT
-        // ════════════════════════════════════════════════════════════════════
-        function updateDurationDisplay() {
-            const slider = document.getElementById('duration-slider');
-            const display = document.getElementById('duration-display');
-            display.textContent = slider.value + ' min';
-        }
-
-        async function saveExamSettings() {
-            const examName = document.getElementById('exam-name').value.trim();
-            const duration = parseInt(document.getElementById('duration-slider').value);
-            const totalMarks = parseFloat(document.getElementById('total-marks').value) || 100;
-            const passingMarks = parseFloat(document.getElementById('passing-marks').value) || 40;
-
-            if (!examName) {
-                alert('Please enter an exam name');
-                return;
-            }
-
-            try {
-                const resp = await fetch('/api/admin/exam-settings', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        exam_name: examName,
-                        duration: duration,
-                        total_marks: totalMarks,
-                        passing_marks: passingMarks,
-                        is_active: true
-                    })
-                });
-                const data = await resp.json();
-                if (data.status === 'saved') {
-                    alert('Exam settings saved successfully!');
-                    document.getElementById('current-exam-badge').textContent = examName + ' - ' + duration + ' min';
-                    loadExamSettings();
-                }
-            } catch(e) {
-                alert('Error saving exam settings');
-            }
-        }
-
-        async function loadExamSettings() {
-            try {
-                const resp = await fetch('/api/admin/exam-settings');
-                const exams = await resp.json();
-                
-                const listContainer = document.getElementById('saved-exams-list');
-                const selectExams = document.getElementById('existing-exams');
-                
-                if (!exams.length) {
-                    listContainer.innerHTML = '<p style="color: var(--ms-grey-secondary);">No saved exams yet.</p>';
-                    return;
-                }
-
-                listContainer.innerHTML = exams.map(exam => `
-                    <div style="border: 1px solid var(--ms-grey-border); border-radius: 8px; padding: 1rem; cursor: pointer; transition: all 0.2s;" 
-                         onmouseover="this.style.borderColor='var(--ms-blue)'" onmouseout="this.style.borderColor='var(--ms-grey-border)'"
-                         onclick="selectExam('${exam.exam_name}', ${exam.duration}, ${exam.total_marks}, ${exam.passing_marks})">
-                        <div style="font-weight: 600; margin-bottom: 0.5rem;">${exam.exam_name}</div>
-                        <div style="font-size: 0.8rem; color: var(--ms-grey-secondary); display: flex; gap: 1rem;">
-                            <span>⏱ ${exam.duration} min</span>
-                            <span>📊 ${exam.total_marks} marks</span>
-                            <span>✅ ${exam.passing_marks} pass</span>
-                        </div>
+            const container = document.getElementById('student-year-groups');
+            container.innerHTML = Object.entries(data).map(([year, students]) => `
+                <div class="panel-card">
+                    <h3 style="margin-top:0;">${year}</h3>
+                    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:1rem;">
+                        ${students.map(s => `
+                            <div style="background:#f8fafc; padding:1rem; border-radius:12px; border:1px solid #e2e8f0; display:flex; align-items:center; gap:12px;">
+                                <div style="width:40px; height:40px; background:white; border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:800; border:1px solid #e2e8f0;">${s.username[0]|upper}</div>
+                                <div>
+                                    <div style="font-weight:700;">${s.full_name || s.username}</div>
+                                    <div style="font-size:0.75rem; color:var(--admin-text-sec);">${s.department || 'No Dept'}</div>
+                                </div>
+                            </div>
+                        `).join('')}
                     </div>
-                `).join('');
-
-                selectExams.innerHTML = '<option value="">Select Existing Exam...</option>' + 
-                    exams.map(exam => `<option value="${exam.exam_name}">${exam.exam_name} (${exam.duration} min)</option>`).join('');
-            } catch(e) {
-                console.error('Error loading exam settings:', e);
-            }
+                </div>
+            `).join('');
         }
 
-        function selectExam(examName, duration, totalMarks, passingMarks) {
-            document.getElementById('exam-name').value = examName;
-            document.getElementById('duration-slider').value = duration;
-            document.getElementById('duration-display').textContent = duration + ' min';
-            document.getElementById('total-marks').value = totalMarks;
-            document.getElementById('passing-marks').value = passingMarks;
-            document.getElementById('current-exam-badge').textContent = examName + ' - ' + duration + ' min';
+        // --- REPORTS ---
+        async function loadReports() {
+            const resp = await fetch('/api/sessions');
+            const data = await resp.json();
+            const tbody = document.getElementById('session-reports-body');
+            tbody.innerHTML = data.map(s => `
+                <tr>
+                    <td style="font-weight:700;">${s.student}</td>
+                    <td>${s.exam_name || 'Default Exam'}</td>
+                    <td>${new Date(s.ended_at * 1000).toLocaleString()}</td>
+                    <td><span class="badge badge-${s.verdict === 'pass' ? 'success' : s.verdict === 'fail' ? 'danger' : 'warning'}">${s.verdict.toUpperCase()}</span></td>
+                    <td style="font-weight:800;">${s.warnings}</td>
+                    <td><button class="btn-action" onclick="viewAudit('${s.id}')">Audit</button></td>
+                </tr>
+            `).join('');
         }
 
-        function loadSelectedExam() {
-            const examName = document.getElementById('existing-exams').value;
-            if (!examName) return;
+        async function viewAudit(sid) {
+            const resp = await fetch(`/api/session/${sid}`);
+            const s = await resp.json();
+            document.getElementById('report-title').textContent = `Audit: ${s.student} (${sid.slice(0,8)})`;
+            const content = document.getElementById('report-content');
             
-            fetch('/api/exam-settings/' + encodeURIComponent(examName))
-                .then(r => r.json())
-                .then(data => {
-                    selectExam(examName, data.duration || 60, data.total_marks || 100, data.passing_marks || 40);
-                });
+            content.innerHTML = `
+                <div>
+                    <h3>📸 Infraction Evidence</h3>
+                    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:1rem; margin-bottom:2rem;">
+                        ${s.evidence.map(e => `
+                            <div style="border-radius:12px; overflow:hidden; border:1px solid #e2e8f0;">
+                                <img src="/admin/evidence/${e.file}" style="width:100%; aspect-ratio:1; object-fit:cover;" onclick="window.open(this.src)">
+                                <div style="padding:8px; font-size:0.75rem; color:var(--admin-text-sec);">${e.msg}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <h3>📜 Event Timeline</h3>
+                    <div style="background:#f8fafc; padding:1.5rem; border-radius:16px; border:1px solid #e2e8f0; font-family:monospace; font-size:0.85rem; max-height:400px; overflow-y:auto;">
+                        ${s.events.map(e => `
+                            <div style="margin-bottom:8px;">[${new Date(e.timestamp*1000).toLocaleTimeString()}] <span style="color:${e.msg.includes('Violation') ? '#ef4444' : 'inherit'}">${e.msg}</span></div>
+                        `).join('')}
+                    </div>
+                </div>
+                <div style="background:#f1f5f9; padding:1.5rem; border-radius:16px;">
+                    <h4 style="margin-top:0;">Session Metadata</h4>
+                    <p><strong>Verdict:</strong> ${s.verdict.toUpperCase()}</p>
+                    <p><strong>Total Warnings:</strong> ${s.warnings}</p>
+                    <p><strong>Tab Switches:</strong> ${s.tab_switches}</p>
+                    <hr>
+                    <p style="font-size:0.8rem; color:var(--admin-text-sec);">Audit generated automatically by ScoreHunt AI.</p>
+                </div>
+            `;
+            document.getElementById('report-modal').style.display = 'flex';
         }
 
-        async function loadExistingExam() {
-            loadExamSettings();
-        }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-        // ════════════════════════════════════════════════════════════════════
-        // MARKS MANAGEMENT
-        // ════════════════════════════════════════════════════════════════════
-        function openMarksModal(student='', exam='', total=100, obtained=0, year='1st Year') {
-            document.getElementById('mark-student').value = student;
-            document.getElementById('mark-exam').value = exam;
-            document.getElementById('mark-total').value = total;
-            document.getElementById('mark-obtained').value = obtained;
-            document.getElementById('mark-year').value = year;
-            document.getElementById('marks-modal').style.display = 'flex';
-        }
-        function closeMarksModal() {
-            document.getElementById('marks-modal').style.display = 'none';
-        }
-        async function saveMarks() {
-            const student = document.getElementById('mark-student').value.trim();
-            const exam = document.getElementById('mark-exam').value.trim();
-            const total = parseFloat(document.getElementById('mark-total').value) || 100;
-            const obtained = parseFloat(document.getElementById('mark-obtained').value) || 0;
-            const year = document.getElementById('mark-year').value;
-            if (!student || !exam) { alert('Student and Exam name required'); return; }
-            await fetch('/api/admin/marks', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({student, exam_name: exam, total_marks: total, obtained_marks: obtained, year})
-            });
-            closeMarksModal();
-            loadMarks();
-        }
-        async function loadMarks() {
-            const exam = document.getElementById('marks-exam-filter').value;
-            const year = document.getElementById('marks-year-filter').value;
-            let url = '/api/admin/marks?';
-            if (exam) url += 'exam_name=' + encodeURIComponent(exam) + '&';
-            if (year) url += 'year=' + encodeURIComponent(year);
-            const resp = await fetch(url);
-            const data = await resp.json();
-            const tbody = document.getElementById('marks-tbody');
-            if (!data.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No records found</td></tr>'; return; }
-            tbody.innerHTML = data.map(m => {
-                const pct = ((m.obtained_marks / m.total_marks) * 100).toFixed(1);
-                return `<tr>
-                    <td><strong>${m.student}</strong></td>
-                    <td>${m.exam_name}</td>
-                    <td>${m.year || '-'}</td>
-                    <td>${m.total_marks}</td>
-                    <td>${m.obtained_marks}</td>
-                    <td><span style="color:${pct>=40?'var(--ms-success)':'var(--ms-danger)'};font-weight:600;">${pct}%</span></td>
-                    <td><button class="ms-btn ms-btn-secondary" style="font-size:0.8rem;padding:0.3rem 0.6rem;" onclick="openMarksModal('${m.student}','${m.exam_name}',${m.total_marks},${m.obtained_marks},'${m.year||'1st Year'}')">Edit</button></td>
-                </tr>`;
-            }).join('');
-        }
-        async function uploadBulkMarks() {
-            const exam = document.getElementById('bulk-exam-name').value.trim();
-            if (!exam) { alert('Enter exam name'); return; }
-            const lines = document.getElementById('bulk-marks-data').value.trim().split('\n');
-            const marks = lines.map(line => {
-                const [student, total, obtained, year] = line.split(',');
-                return {student: student?.trim(), total_marks: parseFloat(total)||100, obtained_marks: parseFloat(obtained)||0, year: year?.trim()||'1st Year'};
-            }).filter(m => m.student);
-            if (!marks.length) { alert('No valid data'); return; }
-            await fetch('/api/admin/marks/upload', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({exam_name: exam, marks})
-            });
-            alert('Marks uploaded successfully!');
-            loadMarks();
-        }
-
-        // ════════════════════════════════════════════════════════════════════
-        // TOP RANKERS
-        // ════════════════════════════════════════════════════════════════════
-        async function loadRankers() {
-            const exam = document.getElementById('rankers-exam-select').value;
-            if (!exam) {
-                document.getElementById('rankers-tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;">Select an exam</td></tr>';
-                return;
-            }
-            const resp = await fetch('/api/admin/top-rankers?exam_name=' + encodeURIComponent(exam));
-            const data = await resp.json();
-            const tbody = document.getElementById('rankers-tbody');
-            ['ranker-1', 'ranker-2', 'ranker-3'].forEach((id, i) => {
-                const r = data[i];
-                if (r) {
-                    document.getElementById(id).textContent = r.student + (r.student_id ? ` (${r.student_id})` : '');
-                    document.getElementById(id + '-marks').textContent = `${r.obtained_marks}/${r.total_marks} (${((r.obtained_marks/r.total_marks)*100).toFixed(1)}%)`;
-                } else {
-                    document.getElementById(id).textContent = '-';
-                    document.getElementById(id + '-marks').textContent = '-';
-                }
-            });
-            if (!data.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No data</td></tr>'; return; }
-            tbody.innerHTML = data.map((r, i) => {
-                const pct = ((r.obtained_marks / r.total_marks) * 100).toFixed(1);
-                return `<tr>
-                    <td>${i+1 === 1 ? '🥇' : i+1 === 2 ? '🥈' : i+1 === 3 ? '🥉' : i+1}</td>
-                    <td>${r.student_id || '-'}</td>
-                    <td><strong>${r.student}</strong></td>
-                    <td>${r.year || '-'}</td>
-                    <td>${r.obtained_marks}/${r.total_marks}</td>
-                    <td>${pct}%</td>
-                </tr>`;
-            }).join('');
-        }
-
-        // ════════════════════════════════════════════════════════════════════
-        // ATTENDANCE
-        // ════════════════════════════════════════════════════════════════════
-        async function loadAttendance() {
-            const exam = document.getElementById('attendance-exam-name').value.trim() || 'default';
-            const resp = await fetch('/api/attendance/attempted?exam_name=' + encodeURIComponent(exam));
-            const data = await resp.json();
-            document.getElementById('att-total').textContent = data.attempted.length + data.not_attempted.length;
-            document.getElementById('att-attempted').textContent = data.attempted.length;
-            document.getElementById('att-not-attempted').textContent = data.not_attempted.length;
-            document.getElementById('att-attempted-tbody').innerHTML = data.attempted.length ?
-                data.attempted.map(a => `<tr><td>${a.student}</td><td><span class="ms-badge ms-badge-success">Attempted</span></td><td>${a.attempted_at ? new Date(a.attempted_at*1000).toLocaleString() : '-'}</td></tr>`).join('') :
-                '<tr><td colspan="3" style="text-align:center;">No students</td></tr>';
-            document.getElementById('att-not-tbody').innerHTML = data.not_attempted.length ?
-                data.not_attempted.map(a => `<tr><td>${a.student}</td><td><span class="ms-badge ms-badge-danger">Not Attempted</span></td><td><button class="ms-btn ms-btn-secondary" style="font-size:0.8rem;padding:0.2rem 0.5rem;" onclick="allowReattempt('${a.student}','${exam}')">Allow Re-attempt</button></td></tr>`).join('') :
-                '<tr><td colspan="3" style="text-align:center;">All students attempted</td></tr>';
-        }
-        async function allowReattempt(student, exam) {
-            await fetch('/api/admin/reattempts', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({action: 'allow', student, exam_name: exam})
-            });
-            alert('Re-attempt allowed for ' + student);
-            loadAttendance();
-        }
-
-        // ════════════════════════════════════════════════════════════════════
-        // HACKATHONS
-        // ════════════════════════════════════════════════════════════════════
-        function openHackathonModal() { document.getElementById('hackathon-modal').style.display = 'flex'; }
-        function closeHackathonModal() { document.getElementById('hackathon-modal').style.display = 'none'; }
-        async function saveHackathon() {
-            const title = document.getElementById('hack-title').value.trim();
-            const link = document.getElementById('hack-link').value.trim();
-            if (!title || !link) { alert('Title and Link required'); return; }
-            await fetch('/api/admin/hackathons', {
+        // --- EXAM CREATION ---
+        function openCreateExamModal() {
+            const name = prompt("Enter Exam Name:");
+            if(!name) return;
+            const duration = prompt("Duration (minutes):", "60");
+            const marks = prompt("Total Marks:", "100");
+            
+            fetch('/api/admin/exams', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    title,
-                    description: document.getElementById('hack-desc').value,
-                    link,
-                    start_date: document.getElementById('hack-start').value,
-                    end_date: document.getElementById('hack-end').value
+                    exam_name: name,
+                    duration: parseInt(duration),
+                    total_marks: parseInt(marks)
                 })
+            }).then(() => {
+                loadExams();
+                loadExamOptions();
             });
-            closeHackathonModal();
-            loadHackathons();
-        }
-        async function loadHackathons() {
-            const resp = await fetch('/api/admin/hackathons');
-            const data = await resp.json();
-            const list = document.getElementById('hackathons-list');
-            if (!data.length) { list.innerHTML = '<p style="color:var(--ms-grey-secondary);">No hackathons</p>'; return; }
-            list.innerHTML = data.map(h => `<div style="border:1px solid var(--ms-grey-border);border-radius:8px;padding:1rem;background:var(--ms-white);">
-                <h4 style="margin-bottom:0.5rem;">${h.title}</h4>
-                <p style="font-size:0.85rem;color:var(--ms-grey-secondary);margin-bottom:0.5rem;">${h.description || 'No description'}</p>
-                <a href="${h.link}" target="_blank" style="color:var(--ms-blue);font-size:0.85rem;">${h.link}</a>
-                <div style="margin-top:0.5rem;font-size:0.75rem;color:var(--ms-grey-secondary);">${h.start_date || ''} - ${h.end_date || ''}</div>
-                <button class="ms-btn ms-btn-secondary" style="margin-top:0.5rem;font-size:0.75rem;padding:0.2rem 0.5rem;" onclick="deleteHackathon(${h.id})">Delete</button>
-            </div>`).join('');
-            const appsResp = await fetch('/api/admin/hackathon-applications');
-            const apps = await appsResp.json();
-            document.getElementById('hackathon-apps-tbody').innerHTML = apps.length ?
-                apps.map(a => `<tr><td>${a.student}</td><td>${a.team_name || '-'}</td><td>${new Date(a.applied_at*1000).toLocaleString()}</td><td><span class="ms-badge ms-badge-success">${a.status}</span></td></tr>`).join('') :
-                '<tr><td colspan="4" style="text-align:center;">No applications</td></tr>';
-        }
-        async function deleteHackathon(id) {
-            if (!confirm('Delete this hackathon?')) return;
-            await fetch('/api/admin/hackathons/' + id, {method: 'DELETE'});
-            loadHackathons();
         }
 
-        // ════════════════════════════════════════════════════════════════════
-        // EXAM KEYS
-        // ════════════════════════════════════════════════════════════════════
-        async function saveExamKey() {
-            const exam = document.getElementById('key-exam-name').value.trim();
-            const key = document.getElementById('key-content').value;
-            if (!exam) { alert('Enter exam name'); return; }
-            await fetch('/api/admin/exam-key', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({exam_name: exam, answer_key: key})
-            });
-            alert('Answer key saved!');
-        }
-        async function releaseExamKey() {
-            const exam = document.getElementById('release-exam-name').value.trim();
-            if (!exam) { alert('Enter exam name'); return; }
-            if (!confirm('Release answer key to students now?')) return;
-            await fetch('/api/admin/exam-key/release', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({exam_name: exam})
-            });
-            alert('Answer key released to students!');
-        }
-
-        // ════════════════════════════════════════════════════════════════════
-        // RESULTS
-        // ════════════════════════════════════════════════════════════════════
-        async function loadResults() {
-            const exam = document.getElementById('results-exam-name').value.trim();
-            if (!exam) return;
-            const resp = await fetch('/api/admin/results?exam_name=' + encodeURIComponent(exam));
-            const data = await resp.json();
-            const tbody = document.getElementById('results-tbody');
-            if (!data.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No results</td></tr>'; return; }
-            tbody.innerHTML = data.map(r => `<tr>
-                <td>${r.student}</td>
-                <td>${r.marks}</td>
-                <td>${r.percentage?.toFixed(1)}%</td>
-                <td><span class="ms-badge ${r.verdict==='pass'?'ms-badge-success':'ms-badge-danger'}">${r.verdict}</span></td>
-                <td>${r.published ? '✓ Published' : 'Draft'}</td>
-            </tr>`).join('');
-        }
-        async function publishResults() {
-            const exam = document.getElementById('results-exam-name').value.trim() || 'default';
-            if (!confirm('Publish results for all students?')) return;
-            await fetch('/api/admin/results', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({action: 'publish', exam_name: exam})
-            });
-            alert('Results published!');
-            loadResults();
-        }
-
-        // ════════════════════════════════════════════════════════════════════
-        // RE-ATTEMPTS
-        // ════════════════════════════════════════════════════════════════════
-        async function loadReattemptRequests() {
-            const resp = await fetch('/api/admin/reattempts');
-            const data = await resp.json();
-            const tbody = document.getElementById('reattempt-tbody');
-            if (!data.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No requests</td></tr>'; return; }
-            tbody.innerHTML = data.map(r => `<tr>
-                <td>${r.student}</td>
-                <td>${r.exam_name}</td>
-                <td><span class="ms-badge ms-badge-warning">Pending</span></td>
-                <td><button class="ms-btn ms-btn-success" style="font-size:0.8rem;padding:0.3rem 0.6rem;" onclick="allowReattempt('${r.student}','${r.exam_name}')">Allow</button></td>
-            </tr>`).join('');
-        }
-
-        // ════════════════════════════════════════════════════════════════════
-        // QUERIES / CHAT
-        // ════════════════════════════════════════════════════════════════════
-        let currentQueryId = null;
-        async function loadQueries() {
-            const resp = await fetch('/api/admin/queries');
-            const data = await resp.json();
-            const badge = document.getElementById('unread-badge');
-            if (data.unread_count > 0) {
-                badge.style.display = 'inline-block';
-                badge.textContent = data.unread_count + ' Unread';
-            } else {
-                badge.style.display = 'none';
-            }
-            const list = document.getElementById('queries-list');
-            if (!data.queries.length) { list.innerHTML = '<p style="color:var(--ms-grey-secondary);text-align:center;">No queries</p>'; return; }
-            list.innerHTML = data.queries.map(q => `<div style="border:1px solid var(--ms-grey-border);border-radius:8px;padding:1rem;${!q.response?'border-left:4px solid var(--ms-blue);':''}">
-                <div style="display:flex;justify-content:space-between;margin-bottom:0.5rem;">
-                    <strong>${q.student}</strong>
-                    <span style="font-size:0.75rem;color:var(--ms-grey-secondary);">${new Date(q.created_at*1000).toLocaleString()}</span>
-                </div>
-                <div style="font-size:0.9rem;margin-bottom:0.5rem;">${q.message}</div>
-                ${q.response ? `<div style="background:var(--ms-success);color:white;padding:0.5rem;border-radius:4px;font-size:0.85rem;margin-top:0.5rem;"><strong>Admin:</strong> ${q.response}</div>` : '<button class="ms-btn ms-btn-primary" style="font-size:0.8rem;padding:0.3rem 0.6rem;margin-top:0.5rem;" onclick="openRespondModal('+q.id+',`' + q.student + '`,`' + q.message.replace(/`/g, "'") + '`)">Respond</button>'}
-            </div>`).join('');
-        }
-        function openRespondModal(id, student, message) {
-            currentQueryId = id;
-            document.getElementById('respond-student').textContent = 'From: ' + student;
-            document.getElementById('respond-question').textContent = message;
-            document.getElementById('respond-text').value = '';
-            document.getElementById('respond-modal').style.display = 'flex';
-        }
-        function closeRespondModal() { document.getElementById('respond-modal').style.display = 'none'; }
-        async function submitResponse() {
-            const response = document.getElementById('respond-text').value.trim();
-            if (!response) { alert('Enter response'); return; }
-            await fetch('/api/admin/queries/' + currentQueryId + '/respond', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({response})
-            });
-            closeRespondModal();
-            loadQueries();
-        }
-
-        // ════════════════════════════════════════════════════════════════════
-        // NOTIFICATIONS
-        // ════════════════════════════════════════════════════════════════════
-        async function sendNotification() {
-            const title = document.getElementById('notif-title').value.trim();
-            const message = document.getElementById('notif-message').value.trim();
-            const target = document.getElementById('notif-target').value;
-            const type = document.getElementById('notif-type').value;
-            if (!title || !message) { alert('Title and message required'); return; }
-            await fetch('/api/admin/notifications', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({title, message, target, type})
-            });
-            alert('Notification sent!');
-            document.getElementById('notif-title').value = '';
-            document.getElementById('notif-message').value = '';
-            loadNotifications();
-        }
-        async function loadNotifications() {
-            const resp = await fetch('/api/admin/notifications');
-            const data = await resp.json();
-            const history = document.getElementById('notif-history');
-            if (!data.length) { history.innerHTML = '<p style="color:var(--ms-grey-secondary);text-align:center;">No notifications</p>'; return; }
-            history.innerHTML = data.map(n => `<div style="border:1px solid var(--ms-grey-border);border-radius:8px;padding:1rem;display:flex;justify-content:space-between;align-items:start;">
-                <div>
-                    <div style="font-weight:600;margin-bottom:0.25rem;">${n.title}</div>
-                    <div style="font-size:0.85rem;color:var(--ms-grey-secondary);">${n.message}</div>
-                    <div style="font-size:0.75rem;color:var(--ms-grey-secondary);margin-top:0.25rem;">${new Date(n.created_at*1000).toLocaleString()} • ${n.type}</div>
-                </div>
-                <button class="ms-btn ms-btn-secondary" style="font-size:0.75rem;padding:0.2rem 0.5rem;color:var(--ms-danger);border-color:var(--ms-danger);" onclick="deleteNotification(${n.id})">Delete</button>
-            </div>`).join('');
-        }
-        async function deleteNotification(id) {
-            await fetch('/api/admin/notifications/' + id, {method: 'DELETE'});
-            loadNotifications();
-        }
-
-        // ════════════════════════════════════════════════════════════════════
-        // DASHBOARD STATS LOADER
-        // ════════════════════════════════════════════════════════════════════
-        async function loadDashboardStats() {
-            try {
-                const resp = await fetch('/api/admin/dashboard-stats');
-                const stats = await resp.json();
-                document.getElementById('exam-badge').textContent = stats.total_sessions + ' Sessions';
-            } catch(e) {}
-        }
-        loadDashboardStats();
-
-        // ════════════════════════════════════════════════════════════════════
-        // MOBILE MENU
-        // ════════════════════════════════════════════════════════════════════
-        function toggleMobileMenu() {
-            const nav = document.getElementById('mobileNav');
-            nav.classList.toggle('open');
+        // --- QUESTION CREATION ---
+        async function openAddQuestionModal() {
+            const qText = prompt("Enter Question:");
+            if(!qText) return;
+            const qType = prompt("Type (mcq, code, theory):", "mcq");
             
-            if (!document.querySelector('.sidebar-overlay')) {
-                const overlay = document.createElement('div');
-                overlay.className = 'sidebar-overlay';
-                overlay.onclick = closeMobileMenu;
-                document.body.appendChild(overlay);
+            const resp = await fetch('/api/admin/exams');
+            const exams = await resp.json();
+            const examList = exams.map((ex, i) => `${i+1}. ${ex.exam_name}`).join('\n');
+            const examIdx = prompt("Select Exam (Number):\n" + examList, "1");
+            const examName = exams[parseInt(examIdx)-1]?.exam_name || "";
+
+            let options = null;
+            let correct = null;
+            if(qType === 'mcq') {
+                options = [prompt("Option 1:"), prompt("Option 2:"), prompt("Option 3:"), prompt("Option 4:")];
+                correct = parseInt(prompt("Correct index (0-3):", "0"));
+            }
+
+            fetch('/api/admin/questions', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    type: qType,
+                    question: qText,
+                    exam_name: examName,
+                    options: options,
+                    correct_answer: correct
+                })
+            }).then(() => loadQuestions());
+        }
+
+        async function generateBulkKeys() {
+            const exam = document.getElementById('bulk-key-exam').value;
+            const count = document.getElementById('bulk-key-count').value;
+            if (!exam) return alert("Select an exam first!");
+            
+            if (!confirm(`Generate ${count} new keys for ${exam}?`)) return;
+            
+            try {
+                const resp = await fetch('/api/admin/exams/bulk-keys', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({exam_name: exam, count: count})
+                });
+                const data = await resp.json();
+                if (data.status === 'success') {
+                    alert(`Successfully created ${data.count} keys!`);
+                }
+            } catch(e) {
+                alert("Failed to generate keys instantly.");
             }
         }
-        
-        function closeMobileMenu() {
-            const nav = document.getElementById('mobileNav');
-            nav.classList.remove('open');
-            const overlay = document.querySelector('.sidebar-overlay');
-            if (overlay) overlay.remove();
-        }
-        
-        // Close mobile menu on window resize
-        window.addEventListener('resize', function() {
-            if (window.innerWidth > 992) {
-                closeMobileMenu();
+
+        // Update exam dropdowns for keys
+        async function loadExamOptionsForKeys() {
+            const resp = await fetch('/api/admin/exams');
+            const data = await resp.json();
+            const select = document.getElementById('bulk-key-exam');
+            if (select) {
+                select.innerHTML = '<option value="">Select Exam</option>' + 
+                    data.map(ex => `<option value="${ex.exam_name}">${ex.exam_name}</option>`).join('');
             }
-        });
+        }
+
+        // --- HELPERS ---
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        
+        async function stopAllSessions() {
+            if(confirm('Stop ALL active exam sessions immediately?')) {
+                const resp = await fetch('/api/active_students');
+                const students = await resp.json();
+                for(let s of students) {
+                    await fetch('/api/control', { 
+                        method:'POST', 
+                        headers:{'Content-Type':'application/json'}, 
+                        body: JSON.stringify({action:'stop', _user: s.username}) 
+                    });
+                }
+                initMonitoring();
+            }
+        }
+
+        // INIT
+        window.onload = () => {
+            loadDashboard();
+            loadExamOptionsForKeys();
+            setInterval(async () => {
+                const resp = await fetch('/api/admin/queries');
+                const data = await resp.json();
+                const pill = document.getElementById('unread-queries-pill');
+                if (pill) pill.textContent = `${data.unread_count || 0} UNREAD`;
+            }, 10000);
+        };
     </script>
 </body>
 </html>

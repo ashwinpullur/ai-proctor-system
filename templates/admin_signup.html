@@ -1,51 +1,146 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ScoreHunt | Admin Registration</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='fluent.css') }}">
+    <title>Admin Registration | ScoreHunt</title>
+    <link rel="stylesheet" href="/static/fluent.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { background-color: var(--ms-off-white); display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-        .signup-card { 
-            width: 100%; max-width: 440px; padding: 2.75rem; 
-            background: var(--ms-white); border: 1px solid var(--ms-grey-border); 
-            box-shadow: 0 2px 4px rgba(0,0,0,.14);
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Inter', sans-serif;
         }
-        .ms-logo-small { margin-bottom: 1.25rem; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 1.1rem; }
-        h2 { font-size: 1.5rem; margin-bottom: 1rem; color: #1b1b1b; }
-        .error-msg { color: var(--ms-danger); font-size: 0.9rem; margin-bottom: 1rem; }
-        .info-box { background: #f0f7ff; color: #0078d4; padding: 1rem; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1.5rem; }
+        
+        .admin-container {
+            width: 100%;
+            max-width: 480px;
+            padding: 20px;
+        }
+
+        .premium-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            color: white;
+        }
+
+        .brand-logo {
+            width: 48px;
+            height: 48px;
+            background: #0078d4;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.5rem;
+            margin: 0 auto 1.5rem;
+        }
+
+        h1 { font-size: 1.75rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -1px; }
+        p.subtitle { color: #94a3b8; margin-bottom: 2rem; font-size: 0.95rem; }
+
+        .info-panel {
+            background: rgba(0, 120, 212, 0.1);
+            border: 1px solid rgba(0, 120, 212, 0.2);
+            padding: 1rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            color: #60a5fa;
+            margin-bottom: 2rem;
+            text-align: left;
+            display: flex;
+            gap: 12px;
+        }
+
+        .form-group { margin-bottom: 1.5rem; text-align: left; }
+        .form-label { display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 0.5rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .admin-input {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        .admin-input:focus {
+            outline: none;
+            border-color: #0078d4;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: #0078d4;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .submit-btn:hover { background: #1d4ed8; transform: translateY(-2px); }
+
+        .error-msg {
+            color: #f87171; font-size: 0.85rem; margin-bottom: 1.5rem; display: block; font-weight: 600;
+        }
+
+        .footer-link { margin-top: 2rem; font-size: 0.85rem; color: #64748b; }
+        .footer-link a { color: #60a5fa; text-decoration: none; font-weight: 600; }
     </style>
 </head>
 <body>
-    <div class="signup-card">
-        <div class="ms-logo-small">
-            <div class="ms-symbol-tiny" style="background: var(--ms-blue); width: 16px; height: 16px; border-radius: 2px; color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800;">SH</div>
-            <span>ScoreHunt Admin</span>
-        </div>
-        <h2>Admin Setup</h2>
-        <p style="margin-bottom: 1.5rem; font-size: 0.95rem;">Configure ScoreHunt Admin Center</p>
+    <div class="admin-container">
+        <div class="premium-card">
+            <div class="brand-logo">SH</div>
+            <h1>Initialize Admin</h1>
+            <p class="subtitle">Set up your administrative controller account</p>
 
-        <div class="info-box">
-            <span>🛡️</span>
-            <span>This account will grant access to all exam logs, student statistics, and evidence files. Ensure you use a strong password.</span>
-        </div>
-
-        {% if error %}
-        <div class="error-msg">{{ error }}</div>
-        {% endif %}
-
-        <form method="POST">
-            <input type="text" name="username" class="ms-input" placeholder="Admin Username" required autofocus>
-            <input type="password" name="password" class="ms-input" placeholder="Admin Password" required>
-            <div style="margin-top: 1.5rem;">
-                <button type="submit" class="ms-btn ms-btn-primary" style="width: 100%;">Create Admin Account</button>
+            <div class="info-panel">
+                <div style="font-size: 1.5rem;">🛡️</div>
+                <div>This account will have full access to system logs, student evidence, and exam controls.</div>
             </div>
-        </form>
 
-        <div class="footer-links">
-            Already have an account? <a href="/admin/login">Log in here</a>
+            {% if error %}
+            <span class="error-msg">⚠️ {{ error }}</span>
+            {% endif %}
+
+            <form method="POST">
+                <div class="form-group">
+                    <label class="form-label">Authorized Username</label>
+                    <input type="text" name="username" class="admin-input" placeholder="Desired username" required autofocus>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Master Password</label>
+                    <input type="password" name="password" class="admin-input" placeholder="••••••••" required>
+                </div>
+                
+                <button type="submit" class="submit-btn">Create Admin Identity</button>
+            </form>
+
+            <div class="footer-link">
+                Already have an identity? <a href="/admin/login">Log in here</a>
+            </div>
         </div>
     </div>
 </body>

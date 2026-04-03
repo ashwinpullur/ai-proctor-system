@@ -39,21 +39,41 @@ app.secret_key = "AI_PROCTOR_SECRET_KEY"  # for sessions
 # Initialise SQLite DB
 database.init_db()
 
-# ── Global state ──────────────────────────────────────────────────────────────
-cheat_stats = {
-    "warnings": 0,
-    "face_mismatch_count": 0,  # dedicated face-mismatch strike counter (max 3)
-    "tab_switches": 0,
-    "events": [],
-    "evidence": [],
-}
-is_exam_active = False
+# ── Multi-User Session Manager ───────────────────────────────────────────────
+# username -> { 'stats': {}, 'active': bool, 'vision': VisionMonitor, ... }
+SESSION_MANAGER = {}
+
+
+def get_session_data(username):
+    """Retrieve or initialize proctoring state for a specific user."""
+    if not username:
+        return None
+    if username not in SESSION_MANAGER:
+        # Generate a unique session ID for database tracking
+        session_id = f"{username}_{int(time.time())}"
+        SESSION_MANAGER[username] = {
+            "session_id": session_id,
+            "stats": {
+                "warnings": 0,
+                "face_mismatch_count": 0,
+                "tab_switches": 0,
+                "events": [],
+                "evidence": [],
+                "student": username,
+                "started_at": int(time.time()),
+            },
+            "is_active": False,
+            "vision": VisionMonitor(),
+            "audio": None,
+            "os": None,
+            "cooldowns": {},  # per-user infraction cooldowns
+        }
+    return SESSION_MANAGER[username]
+
+
 AUTO_STOP_LIMIT = 25  # auto-stop after this many distinct warnings
 TAB_SWITCH_LIMIT = 3  # terminate after this many tab-switch violations
 
-vision_monitor = VisionMonitor()
-audio_monitor = None
-os_monitor = None
 
 # LIVE STREAMS: map username -> raw_frame_bytes
 ACTIVE_STREAMS = {}
@@ -132,89 +152,92 @@ def _warn_type_key(msg: str) -> str:
     return msg[:30]  # fallback: first 30 chars
 
 
-def log_infraction(msg, evidence_file=None):
-    global cheat_stats, is_exam_active
+def log_infraction(username, msg, evidence_file=None):
+    session_data = get_session_data(username)
+    if not session_data:
+        return
+        
+    stats = session_data["stats"]
+    is_active = session_data["is_active"]
+    cooldowns = session_data["cooldowns"]
 
     # Per-type deduplication — suppress if same category was logged recently
     key = _warn_type_key(msg)
     now = time.time()
-    if now - _WARN_COOLDOWNS.get(key, 0) < WARN_TYPE_COOLDOWN:
+    if now - cooldowns.get(key, 0) < WARN_TYPE_COOLDOWN:
         # Update evidence silently even if warn is suppressed
         if evidence_file:
-            cheat_stats["evidence"].append(
-                {
-                    "file": evidence_file,
-                    "msg": msg,
-                    "timestamp": int(now),
-                }
-            )
+            stats["evidence"].append({"file": evidence_file, "msg": msg, "timestamp": int(now)})
+            # Persist to database immediately
+            try:
+                database.add_session_evidence(session_data["session_id"], evidence_file, msg, now)
+            except Exception as e:
+                print(f"[DB] Error saving evidence: {e}")
         return
-    _WARN_COOLDOWNS[key] = now
+    cooldowns[key] = now
 
     # ── Face-mismatch: dedicated 3-strike system ────────────────────────────────
     is_face_mismatch = "FACE_MISMATCH:" in msg
     if is_face_mismatch:
-        cheat_stats["face_mismatch_count"] += 1
-        strike = cheat_stats["face_mismatch_count"]
-        print(f"[!] IDENTITY STRIKE {strike}/3: {msg}")
-        if strike >= 3 and is_exam_active:
-            print("[!] IDENTITY STRIKE 3 — terminating exam.")
-            # Log all 3 strikes then stop
+        stats["face_mismatch_count"] += 1
+        strike = stats["face_mismatch_count"]
+        print(f"[!] IDENTITY STRIKE {strike}/3 for {username}: {msg}")
+        if strike >= 3 and is_active:
+            print(f"[!] IDENTITY STRIKE 3 for {username} — terminating exam.")
+            # Log strike then stop
             event = {"timestamp": int(now), "msg": msg, "face_mismatch_strike": strike}
-            cheat_stats["events"].append(event)
-            cheat_stats["warnings"] += 1
+            stats["events"].append(event)
+            stats["warnings"] += 1
             if evidence_file:
-                cheat_stats["evidence"].append(
-                    {
-                        "file": evidence_file,
-                        "msg": msg,
-                        "timestamp": int(now),
-                    }
-                )
-            stop_exam()
+                stats["evidence"].append({"file": evidence_file, "msg": msg, "timestamp": int(now)})
+            stop_exam(username)
             return
 
-    print(f"[!] INCIDENT: {msg}")
-    event = {"timestamp": int(now), "msg": msg}
-    cheat_stats["events"].append(event)
-    cheat_stats["warnings"] += 1
-
     if evidence_file:
-        cheat_stats["evidence"].append(
-            {
-                "file": evidence_file,
-                "msg": msg,
-                "timestamp": int(now),
-            }
-        )
+        stats["evidence"].append({"file": evidence_file, "msg": msg, "timestamp": int(now)})
+
+    # ── Persist to database immediately ──────────────────────────────────────
+    try:
+        database.add_session_event(session_data["session_id"], msg, now)
+        if evidence_file:
+            database.add_session_evidence(session_data["session_id"], evidence_file, msg, now)
+    except Exception as e:
+        print(f"[DB] Real-time log error: {e}")
 
     # Keep last 50 events
-    if len(cheat_stats["events"]) > 50:
-        cheat_stats["events"] = cheat_stats["events"][-50:]
+    if len(stats["events"]) > 50:
+        stats["events"] = stats["events"][-50:]
 
     # Auto-stop if threshold hit
-    if cheat_stats["warnings"] >= AUTO_STOP_LIMIT and is_exam_active:
-        print(f"[!] AUTO-STOP: {AUTO_STOP_LIMIT} warnings reached.")
-        stop_exam()
+    if stats["warnings"] >= AUTO_STOP_LIMIT and is_active:
+        print(f"[!] AUTO-STOP ({username}): {AUTO_STOP_LIMIT} warnings reached.")
+        stop_exam(username)
 
 
-def save_session():
+
+def save_session(username):
     """Persist completed exam stats to a timestamped JSON file AND SQLite DB."""
+    session_data = get_session_data(username)
+    if not session_data:
+        return None
+        
+    stats = session_data["stats"]
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    fname = f"session_{ts}.json"
+    fname = f"session_{ts}_{username}.json"
     path = os.path.join(SESSIONS_DIR, fname)
     ended = int(time.time())
-    started = cheat_stats.get("started_at", ended)
+    started = stats.get("started_at", ended)
+    
     data = {
         "id": ts,
         "filename": fname,
         "started_at": started,
         "ended_at": ended,
-        "student": cheat_stats.get("student", "Unknown"),
-        "warnings": cheat_stats["warnings"],
-        "tab_switches": cheat_stats.get("tab_switches", 0),
-        "events": cheat_stats["events"],
-        "evidence": cheat_stats["evidence"],
+        "student": username,
+        "warnings": stats["warnings"],
+        "tab_switches": stats.get("tab_switches", 0),
+        "events": stats["events"],
+        "evidence": stats["evidence"],
     }
     # Save JSON (backwards-compatible)
     with open(path, "w") as f:
@@ -223,7 +246,7 @@ def save_session():
     try:
         database.save_session(
             session_id=ts,
-            student=data["student"],
+            student=username,
             ended_at=ended,
             started_at=started,
             warnings=data["warnings"],
@@ -232,22 +255,29 @@ def save_session():
             evidence=data["evidence"],
         )
     except Exception as e:
-        print(f"[DB] Session save error: {e}")
-    print(f"[Session] Saved -> {fname}")
+        print(f"[DB] Session save error for {username}: {e}")
+    print(f"[Session] Saved {username} -> {fname}")
     return fname
 
 
-def stop_exam():
-    global is_exam_active, audio_monitor, os_monitor
-    if is_exam_active:
-        save_session()
-    is_exam_active = False
-    if audio_monitor:
-        audio_monitor.stop()
-        audio_monitor = None
-    if os_monitor:
-        os_monitor.stop()
-        os_monitor = None
+def stop_exam(username):
+    session_data = get_session_data(username)
+    if not session_data:
+        return
+        
+    if session_data["is_active"]:
+        save_session(username)
+        
+    session_data["is_active"] = False
+    
+    if session_data["audio"]:
+        session_data["audio"].stop()
+        session_data["audio"] = None
+        
+    if session_data["os"]:
+        session_data["os"].stop()
+        session_data["os"] = None
+
 
 
 # ── Video feed ────────────────────────────────────────────────────────────────
@@ -289,6 +319,10 @@ def index():
 @app.route("/check")
 @student_required
 def check():
+    # Capture exam name from query param if provided
+    exam_name = request.args.get("exam")
+    if exam_name:
+        session["current_exam"] = exam_name
     return render_template("check.html")
 
 
@@ -448,14 +482,22 @@ def upload_frame():
         return jsonify({"error": "No frame"}), 400
 
     username = session.get("username")
+    session_data = get_session_data(username)
+    
     nparr = np.frombuffer(file.read(), np.uint8)
     frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
     if frame is not None:
-        # Process frame
-        processed, infractions, evidence = vision_monitor.process_frame(frame)
+        # Process frame using user-specific monitor
+        processed, infractions, evidence = session_data["vision"].process_frame(frame)
+        
+        # Save processed frame if there are infractions for evidence
+        if infractions and evidence:
+            path = os.path.join(EVIDENCE_DIR, evidence)
+            cv2.imwrite(path, processed)
+
         for inf in infractions:
-            log_infraction(f"Vision: {inf}", evidence)
+            log_infraction(username, f"Vision: {inf}", evidence)
 
         # Store for admin view
         _, buffer = cv2.imencode(".jpg", processed)
@@ -467,26 +509,26 @@ def upload_frame():
 
 @app.route("/api/stats")
 def get_stats():
+    username = request.args.get("student") or session.get("username")
+    session_data = get_session_data(username)
+    if not session_data:
+        return jsonify({"error": "No active session"}), 404
+
+    stats = session_data["stats"]
     return jsonify(
         {
-            "warnings": cheat_stats["warnings"],
-            "tab_switches": cheat_stats.get("tab_switches", 0),
+            "warnings": stats["warnings"],
+            "tab_switches": stats.get("tab_switches", 0),
             "tab_switch_limit": TAB_SWITCH_LIMIT,
-            "face_mismatch_count": cheat_stats.get("face_mismatch_count", 0),
-            "events": cheat_stats["events"],
-            "evidence": cheat_stats["evidence"],
-            "is_active": is_exam_active,
-            "student": cheat_stats.get("student", ""),
-            "vision_status": vision_monitor.current_status
-            if vision_monitor
-            else "Offline",
-            "audio_status": "Active"
-            if (audio_monitor and audio_monitor.running)
-            else "Offline",
-            "os_status": "Active" if (os_monitor and os_monitor.running) else "Offline",
-            "keystroke_status": os_monitor.keystroke_status
-            if os_monitor
-            else "Offline",
+            "face_mismatch_count": stats.get("face_mismatch_count", 0),
+            "events": stats["events"],
+            "evidence": stats["evidence"],
+            "is_active": session_data["is_active"],
+            "student": username,
+            "vision_status": session_data["vision"].current_status if session_data["vision"] else "Offline",
+            "audio_status": "Active" if (session_data["audio"] and session_data["audio"].running) else "Offline",
+            "os_status": "Active" if (session_data["os"] and session_data["os"].running) else "Offline",
+            "keystroke_status": session_data["os"].keystroke_status if session_data["os"] else "Offline",
             "auto_stop_limit": AUTO_STOP_LIMIT,
         }
     )
@@ -495,9 +537,15 @@ def get_stats():
 @app.route("/api/summary")
 def get_summary():
     """Build a rich exam summary report."""
-    events = cheat_stats["events"]
-    evidence = cheat_stats["evidence"]
-    warnings = cheat_stats["warnings"]
+    username = request.args.get("student") or session.get("username")
+    session_data = get_session_data(username)
+    if not session_data:
+        return jsonify({"error": "No session found"}), 404
+        
+    stats = session_data["stats"]
+    events = stats["events"]
+    evidence = stats["evidence"]
+    warnings = stats["warnings"]
 
     # Severity classification
     HIGH_KEYWORDS = ["phone", "multiple people", "auto-stop"]
@@ -532,7 +580,7 @@ def get_summary():
             "verdict": verdict,
             "timeline": timeline,
             "evidence": evidence,
-            "submitted": cheat_stats.get("submitted", False),
+            "submitted": stats.get("submitted", False),
         }
     )
 
@@ -540,8 +588,11 @@ def get_summary():
 @app.route("/api/submit", methods=["POST"])
 def submit_report():
     """Mark the exam report as submitted."""
-    cheat_stats["submitted"] = True
-    print("[Admin] Exam report submitted.")
+    username = session.get("username")
+    session_data = get_session_data(username)
+    if session_data:
+        session_data["stats"]["submitted"] = True
+    print(f"[Admin] Exam report submitted for {username}.")
     return jsonify({"status": "submitted"})
 
 
@@ -551,61 +602,71 @@ def submit_report():
 def active_students():
     """Return list of students currently streaming (admin only)."""
     result = []
+    # Loop over current processed streams or active sessions
     for username, frame in PROCESSED_STREAMS.items():
+        sess = SESSION_MANAGER.get(username)
+        stats = sess["stats"] if sess else {}
         result.append(
             {
                 "username": username,
-                "warnings": cheat_stats.get("warnings", 0)
-                if cheat_stats.get("student") == username
-                else 0,
-                "tab_switches": cheat_stats.get("tab_switches", 0)
-                if cheat_stats.get("student") == username
-                else 0,
-                "is_active": is_exam_active and cheat_stats.get("student") == username,
+                "warnings": stats.get("warnings", 0),
+                "tab_switches": stats.get("tab_switches", 0),
+                "is_active": sess["is_active"] if sess else False,
             }
         )
     return jsonify(result)
 
 
+# ── Exam & Question Management ────────────────────────────────────────────────
+# --- Exam & Question Management (Redirected to Consolidated Section) ---
+# Legacy routes removed. New ones are below.
+
+
 @app.route("/api/control", methods=["POST"])
 def control_exam():
-    global is_exam_active, audio_monitor, os_monitor, cheat_stats
-
     data = request.json
-    if data.get("action") == "start":
-        is_exam_active = True
-        cheat_stats = {
+    username = data.get("student") or session.get("username")
+    if not username:
+        return jsonify({"error": "User not identified"}), 400
+        
+    session_data = get_session_data(username)
+    action = data.get("action")
+
+    if action == "start":
+        session_data["is_active"] = True
+        session_data["stats"] = {
             "warnings": 0,
             "face_mismatch_count": 0,
             "tab_switches": 0,
             "events": [],
             "evidence": [],
-            "student": data.get("student", "Unknown"),
+            "student": username,
             "started_at": int(time.time()),
         }
-        # Reset per-type cooldown table for the fresh exam session
-        _WARN_COOLDOWNS.clear()
+        session_data["cooldowns"] = {}
+        
+        # Tell vision monitor which student is enrolled
+        if session_data["vision"]:
+            session_data["vision"].set_enrolled_username(username)
 
-        # Tell vision monitor which student is enrolled so it can compare faces
-        enrolled_user = data.get("student", "") or session.get("username", "")
-        if vision_monitor:
-            vision_monitor.set_enrolled_username(enrolled_user)
-
-        if audio_monitor is None or not audio_monitor.running:
-            audio_monitor = AudioMonitor(
-                callback=lambda msg: log_infraction(f"Audio: {msg}")
+        # Start user-specific hardware monitors (legacy/local support)
+        if session_data["audio"] is None or not session_data["audio"].running:
+            session_data["audio"] = AudioMonitor(
+                callback=lambda msg: log_infraction(username, f"Audio: {msg}")
             )
-            audio_monitor.start()
+            session_data["audio"].start()
 
-        if os_monitor is None or not os_monitor.running:
-            os_monitor = OSMonitor(callback=lambda msg: log_infraction(f"OS: {msg}"))
-            os_monitor.start()
+        if session_data["os"] is None or not session_data["os"].running:
+            session_data["os"] = OSMonitor(callback=lambda msg: log_infraction(username, f"OS: {msg}"))
+            session_data["os"].start()
 
-        return jsonify({"status": "Started"})
+        print(f"[App] Exam STARTED for {username}")
+        return jsonify({"status": "Started", "student": username})
 
-    elif data.get("action") == "stop":
-        stop_exam()
-        return jsonify({"status": "Stopped"})
+    elif action == "stop":
+        stop_exam(username)
+        print(f"[App] Exam STOPPED for {username}")
+        return jsonify({"status": "Stopped", "student": username})
 
     return jsonify({"error": "Invalid action"}), 400
 
@@ -617,16 +678,22 @@ def serve_evidence(filename):
 
 @app.route("/api/evidence")
 def list_evidence():
-    return jsonify(cheat_stats["evidence"])
+    username = request.args.get("student") or session.get("username")
+    session_data = get_session_data(username)
+    if not session_data:
+        return jsonify([])
+    return jsonify(session_data["stats"]["evidence"])
 
 
 @app.route("/api/evidence/<filename>", methods=["DELETE"])
 def delete_evidence(filename):
-    """Delete an evidence file from disk and the current session list."""
-    # 1. Remove from current session list
-    cheat_stats["evidence"] = [
-        e for e in cheat_stats["evidence"] if e["file"] != filename
-    ]
+    """Delete an evidence file from disk and the session list."""
+    username = request.args.get("student") or session.get("username")
+    session_data = get_session_data(username)
+    if session_data:
+        session_data["stats"]["evidence"] = [
+            e for e in session_data["stats"]["evidence"] if e["file"] != filename
+        ]
 
     # 2. Try to delete from disk
     path = os.path.join(EVIDENCE_DIR, filename)
@@ -648,8 +715,10 @@ def set_baseline():
     data = request.json or {}
     key_count = int(data.get("keyCount", 0))
     duration = int(data.get("duration", 30))
-    student = data.get("student", session.get("username", "Unknown"))
-    cheat_stats["browser_baseline"] = {
+    student = data.get("student") or session.get("username") or "Unknown"
+    
+    session_data = get_session_data(student)
+    session_data["stats"]["browser_baseline"] = {
         "student": student,
         "keyCount": key_count,
         "mouseMoves": data.get("mouseMoves", 0),
@@ -661,37 +730,40 @@ def set_baseline():
         "avgRate": data.get("avgRate", 0),
     }
     # Wire baseline into running os_monitor immediately
-    if os_monitor and os_monitor.running:
-        os_monitor.set_browser_baseline(key_count, duration)
+    if session_data["os"] and session_data["os"].running:
+        session_data["os"].set_browser_baseline(key_count, duration)
 
-    print(
-        f"[Baseline] Set for {student}: {key_count} keys/{duration}s "
-        f"dwell={data.get('avgDwell', 0):.0f}ms flight={data.get('avgFlight', 0):.0f}ms"
-    )
+    print(f"[Baseline] Set for {student}: {key_count} keys/{duration}s")
     return jsonify({"status": "ok"})
 
 
 @app.route("/api/report_keystroke", methods=["POST"])
 def report_keystroke():
     """Receive per-keystroke dwell/flight timings from the exam page."""
-    if not is_exam_active:
+    username = session.get("username")
+    session_data = get_session_data(username)
+    if not session_data or not session_data["is_active"]:
         return jsonify({"status": "ignored"})
+        
     data = request.json or {}
     dwell_ms = float(data.get("dwell_ms", 0))
     flight_ms = float(data.get("flight_ms", 0))
-    if os_monitor and os_monitor.running:
-        os_monitor.receive_keystroke_event(dwell_ms, flight_ms)
+    if session_data["os"] and session_data["os"].running:
+        session_data["os"].receive_keystroke_event(dwell_ms, flight_ms)
     return jsonify({"status": "ok"})
 
 
 @app.route("/api/report_event", methods=["POST"])
 def report_event():
-    """Receive browser-side events (tab switch) from the student page."""
-    global cheat_stats
+    """Receive browser-side events (tab switch, shortcuts) from the student page."""
+    username = session.get("username")
+    session_data = get_session_data(username)
+    if not session_data or not session_data["is_active"]:
+        return jsonify({"status": "ignored"})
+        
     data = request.json or {}
     msg = data.get("msg", "Unknown browser event")
-    if not is_exam_active:
-        return jsonify({"status": "ignored"})
+    stats = session_data["stats"]
 
     is_tab_event = (
         "tab" in msg.lower() or "focus" in msg.lower() or "visibility" in msg.lower()
@@ -699,9 +771,8 @@ def report_event():
     is_shortcut = "shortcut" in msg.lower()
 
     if is_tab_event or is_shortcut:
-        cheat_stats["tab_switches"] = cheat_stats.get("tab_switches", 0) + 1
-        switch_count = cheat_stats["tab_switches"]
-        username = session.get("username")
+        stats["tab_switches"] = stats.get("tab_switches", 0) + 1
+        switch_count = stats["tab_switches"]
 
         # Capture evidence from the latest uploaded frame if possible
         evidence_file = None
@@ -712,15 +783,12 @@ def report_event():
             path = os.path.join(EVIDENCE_DIR, evidence_file)
             with open(path, "wb") as f:
                 f.write(PROCESSED_STREAMS[username])
-        elif vision_monitor:
-            # Fallback (though we want to avoid server-side camera)
-            evidence_file = vision_monitor.capture_event_frame(msg)
-
-        log_infraction(f"Browser: {msg}", evidence_file)
+        
+        log_infraction(username, f"Browser: {msg}", evidence_file)
 
         if switch_count >= TAB_SWITCH_LIMIT:
             # Enough tab switches — terminate exam
-            stop_exam()
+            stop_exam(username)
             return jsonify(
                 {
                     "status": "stopped",
@@ -740,7 +808,7 @@ def report_event():
                 }
             )
     else:
-        log_infraction(f"Browser: {msg}")
+        log_infraction(username, f"Browser: {msg}")
 
     return jsonify({"status": "logged"})
 
@@ -853,109 +921,7 @@ def delete_user(username):
     return jsonify({"status": "deleted"})
 
 
-# ── Question Bank API ─────────────────────────────────────────────────────────
-@app.route("/api/questions")
-def get_questions():
-    """Return all questions for the exam (students use this)."""
-    questions = database.list_questions()
-    if not questions:
-        # Fallback: return built-in sample questions so exam stays functional
-        return jsonify(
-            [
-                {
-                    "id": 1,
-                    "type": "mcq",
-                    "question": "What does AI stand for?",
-                    "options": [
-                        "Artificial Intelligence",
-                        "Automated Interface",
-                        "Analytical Insight",
-                        "Applied Integration",
-                    ],
-                    "correct_answer": 0,
-                    "placeholder": None,
-                    "code_prompt": None,
-                }
-            ]
-        )
-    return jsonify(questions)
-
-
-@app.route("/api/admin/questions", methods=["GET"])
-@admin_required
-def admin_list_questions():
-    """Return all questions (admin view, includes correct answers)."""
-    return jsonify(database.list_questions())
-
-
-@app.route("/api/admin/questions", methods=["POST"])
-@admin_required
-def admin_add_question():
-    """Add a new question to the bank."""
-    data = request.json or {}
-    q_type = data.get("type", "mcq")
-    question = data.get("question", "").strip()
-    if not question:
-        return jsonify({"error": "Question text required"}), 400
-
-    options = data.get("options")  # list of strings for MCQ
-    correct_answer = data.get("correct_answer")  # int index for MCQ
-    code_prompt = data.get("code_prompt")  # for code type
-    placeholder = data.get("placeholder")
-
-    new_id = database.add_question(
-        q_type=q_type,
-        question=question,
-        options=options,
-        correct_answer=correct_answer,
-        code_prompt=code_prompt,
-        placeholder=placeholder,
-    )
-    print(f"[Admin] Question added (id={new_id}): {q_type} — {question[:40]}")
-    return jsonify({"status": "created", "id": new_id}), 201
-
-
-@app.route("/api/admin/questions/<int:q_id>", methods=["DELETE"])
-@admin_required
-def admin_delete_question(q_id):
-    """Delete a question by id."""
-    deleted = database.delete_question(q_id)
-    if deleted:
-        return jsonify({"status": "deleted"})
-    return jsonify({"error": "Not found"}), 404
-
-
-# ── Exam Settings API ──────────────────────────────────────────────────────────
-
-
-@app.route("/api/admin/exam-settings", methods=["GET", "POST"])
-@admin_required
-def api_exam_settings():
-    if request.method == "POST":
-        data = request.json or {}
-        exam_name = data.get("exam_name", "").strip()
-        if not exam_name:
-            return jsonify({"error": "Exam name required"}), 400
-        database.save_exam_settings(
-            exam_name=exam_name,
-            duration=int(data.get("duration", 60)),
-            total_marks=float(data.get("total_marks", 100)),
-            passing_marks=float(data.get("passing_marks", 40)),
-            start_time=data.get("start_time"),
-            end_time=data.get("end_time"),
-            is_active=1 if data.get("is_active") else 0,
-        )
-        return jsonify({"status": "saved"}), 201
-    settings = database.list_exam_settings()
-    return jsonify(settings)
-
-
-@app.route("/api/exam-settings/<exam_name>", methods=["GET"])
-def api_get_exam_settings(exam_name):
-    settings = database.get_exam_settings(exam_name)
-    if not settings:
-        return jsonify({"duration": 60, "total_marks": 100})
-    return jsonify(settings)
+# (Cleaned legacy Question/Settings routes)
 
 
 # ── Face Recognition API ──────────────────────────────────────────────────────
@@ -1081,31 +1047,13 @@ def api_add_student():
 
 
 @app.route("/api/admin/student-profiles/<username>", methods=["PUT", "DELETE"])
-@admin_required
-def api_admin_student_profile(username):
-    if request.method == "PUT":
-        data = request.json or {}
-        database.update_student_profile(
-            username=username,
-            student_id=data.get("student_id"),
-            year=data.get("year"),
-            department=data.get("department"),
-        )
-        return jsonify({"status": "updated"})
-    database.update_student_profile(username, student_id="", year="", department="")
-    return jsonify({"status": "deleted"})
+# (Cleaned Student Profile routes)
 
 
 # ── Exam Attendance ────────────────────────────────────────────────────────────
 
 
-@app.route("/api/attendance", methods=["GET"])
-@admin_required
-def api_attendance():
-    exam_name = request.args.get("exam_name", "default")
-    stats = database.get_attendance_stats(exam_name)
-    attendance = database.get_attendance(exam_name)
-    return jsonify({"stats": stats, "attendance": attendance})
+# (Cleaned Attendance route)
 
 
 @app.route("/api/attendance/mark", methods=["POST"])
@@ -1434,15 +1382,7 @@ def api_get_student_profile(username):
     return jsonify(profile)
 
 
-@app.route("/api/admin/student-profiles", methods=["GET"])
-@admin_required
-def api_admin_student_profiles():
-    # Flattening the list_students_by_year for the simple table view if needed
-    by_year = database.list_students_by_year()
-    all_students = []
-    for year in by_year:
-        all_students.extend(by_year[year])
-    return jsonify(all_students)
+# Note: GET /api/admin/student-profiles is already handled by api_student_profiles above.
 
 
 @app.route("/api/admin/student-profiles/<username>", methods=["PUT"])
@@ -1546,6 +1486,8 @@ def api_upload_resume():
     return jsonify({"status": "uploaded", "path": resume_path})
 
 
+
+
 # ── Dashboard Statistics ──────────────────────────────────────────────────────
 
 
@@ -1624,6 +1566,108 @@ def api_cleanup_evidence():
         conn.execute("DELETE FROM session_evidence WHERE timestamp < ?", (cutoff_time,))
 
     return jsonify({"status": "cleaned", "deleted_files": deleted_count})
+
+
+# ── Admin Extensions (Bulk Keys & Performance) ──────────────────────────────
+
+@app.route("/api/admin/exams", methods=["GET", "POST"])
+@admin_required
+def api_admin_exams():
+    if request.method == "POST":
+        data = request.json or {}
+        database.create_exam(
+            exam_name=data.get("exam_name"),
+            duration=data.get("duration", 60),
+            total_marks=data.get("total_marks", 100)
+        )
+        return jsonify({"status": "created"}), 201
+    
+    exams = database.list_exams()
+    return jsonify(exams)
+
+
+@app.route("/api/admin/questions", methods=["GET", "POST"])
+@admin_required
+def api_admin_questions():
+    exam_name = request.args.get("exam_name")
+    if request.method == "POST":
+        data = request.json or {}
+        database.add_question(
+            q_type=data.get("type"),
+            question=data.get("question"),
+            options=data.get("options"),
+            correct_answer=data.get("correct_answer"),
+            exam_name=data.get("exam_name")
+        )
+        return jsonify({"status": "created"}), 201
+    
+    if exam_name:
+        questions = database.get_questions_by_exam(exam_name)
+    else:
+        questions = database.list_questions()
+    return jsonify(questions)
+
+
+@app.route("/api/admin/exams/bulk-keys", methods=["POST"])
+@admin_required
+def api_admin_bulk_keys():
+    """Generate multiple exam keys at once in a fast transaction."""
+    data = request.json or {}
+    exam_name = data.get("exam_name")
+    count = int(data.get("count", 10))
+    
+    if not exam_name:
+        return jsonify({"error": "Exam name is required"}), 400
+    
+    new_keys = database.generate_bulk_keys(exam_name, count)
+    return jsonify({
+        "status": "success",
+        "count": len(new_keys),
+        "keys": new_keys
+    })
+
+
+def background_save_evidence(session_id, msg, frame_data):
+    """Save evidence image and log event in a background thread."""
+    try:
+        # 1. Save Image
+        filename = f"evidence_{session_id}_{int(time.time())}.jpg"
+        save_path = os.path.join(EVIDENCE_DIR, filename)
+        
+        import base64
+        img_bytes = base64.b64decode(frame_data.split(",")[1])
+        with open(save_path, "wb") as f:
+            f.write(img_bytes)
+            
+        # 2. Update Database
+        database.add_evidence(session_id, filename, msg)
+        database.add_event(session_id, f"[AUTO-LOG] {msg}")
+    except Exception as e:
+        print(f"[Thread Error] Failed to save evidence: {e}")
+
+
+@app.route("/api/log-infraction", methods=["POST"])
+def api_log_infraction():
+    """Triggered by the frontend to log a violation with optional frame."""
+    data = request.json or {}
+    username = data.get("student") or session.get("user")
+    msg = data.get("msg", "Generic Violation")
+    frame = data.get("frame")
+    
+    sess = get_session_data(username)
+    if not sess:
+        return jsonify({"error": "No active session"}), 404
+
+    # Run heavy I/O in the background to prevent "stuck" app
+    if frame:
+        threading.Thread(
+            target=background_save_evidence, 
+            args=(sess["session_id"], msg, frame)
+        ).start()
+    else:
+        database.add_event(sess["session_id"], f"[AUTO-LOG] {msg}")
+
+    return jsonify({"status": "logged"})
 
 
 if __name__ == "__main__":

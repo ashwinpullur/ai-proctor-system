@@ -51,7 +51,15 @@
         }
         .sample-dot.captured { background: #10b981; border-color: #10b981; }
 
-        .btn-row { display: flex; justify-content: center; gap: 1rem; }
+        @media (max-width: 640px) {
+            body { padding: 1rem; }
+            .verify-card { padding: 1.5rem; }
+            .cam-ring { width: 240px; height: 240px; margin-bottom: 1rem; }
+            h1 { font-size: 1.5rem; }
+            p { font-size: 0.85rem !important; }
+            .face-status { font-size: 0.9rem; }
+            #enroll-btn { width: 100%; }
+        }
     </style>
 </head>
 <body>

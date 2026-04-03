@@ -5,9 +5,176 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Proctor – Student</title>
     <meta name="description" content="Student exam portal with AI-powered proctoring.">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='fluent.css') }}">
     <style>
+        :root {
+            --accent: #0078d4;
+            --accent-hover: #106ebe;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f0f2f5 0%, #e3e8ee 100%);
+            min-height: 100vh;
+            padding-bottom: 70px; /* Space for mobile nav */
+        }
+
+        .dashboard-wrapper {
+            padding: 1rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        @media (min-width: 768px) {
+            .dashboard-wrapper { padding: 2rem; }
+            body { padding-bottom: 0; }
+        }
+
+        /* Responsive Nav */
+        .premium-nav {
+            display: flex;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 8px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+            position: sticky;
+            top: 10px;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        /* Mobile specific bottom navigation */
+        @media (max-width: 767px) {
+            .premium-nav {
+                position: fixed;
+                bottom: 15px;
+                top: auto;
+                left: 15px;
+                right: 15px;
+                margin-bottom: 0;
+                justify-content: space-around;
+                border-radius: 24px;
+                padding: 12px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+                border: 1px solid rgba(255, 255, 255, 0.4);
+                background: rgba(255, 255, 255, 0.85);
+            }
+            .nav-item {
+                font-size: 0.7rem;
+                padding: 8px 10px !important;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 4px;
+                flex: 1;
+            }
+            .nav-item .nav-icon { display: block !important; font-size: 1.4rem; }
+            .nav-text { display: none; }
+            .dashboard-wrapper { padding: 1rem 1rem 100px 1rem; }
+            
+            /* Responsive Grids */
+            .profile-grid, .stats-grid {
+                grid-template-columns: 1fr !important;
+            }
+            .course-card { padding: 1rem !important; }
+        }
+
+        .nav-item {
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #64748b;
+            white-space: nowrap;
+            border: none;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-item .nav-icon { font-size: 1.1rem; }
+
+        .nav-item.active {
+            background: #0078d4;
+            color: white;
+            box-shadow: 0 4px 20px rgba(0, 120, 212, 0.3);
+        }
+
+        .nav-item:hover:not(.active) {
+            background: rgba(0, 120, 212, 0.1);
+            color: var(--primary-blue);
+        }
+
+        /* Grid Utilities */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 1024px) {
+            .main-layout {
+                grid-template-columns: 1fr 350px;
+                gap: 2rem;
+            }
+        }
+
+        .premium-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        @media (min-width: 768px) {
+            .premium-card { padding: 2.5rem; }
+        }
+
+        /* Profile Grid */
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        @media (min-width: 600px) {
+            .profile-grid { grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        }
+
+        /* Status Colors */
+        .text-success { color: #107c10; }
+        .text-warning { color: #d83b01; }
+        .text-danger { color: #a4262c; }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: white;
+            border-radius: 100px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            box-shadow: var(--shadow);
+        }
+
+        .pulse-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #107c10;
+            box-shadow: 0 0 0 rgba(16, 124, 16, 0.4);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16, 124, 16, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(16, 124, 16, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 124, 16, 0); } }
+
         * { -webkit-tap-highlight-color: transparent; }
         
         .notif-badge { position: absolute; top: -5px; right: -5px; background: #f43f5e; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
@@ -178,76 +345,98 @@
 <body>
 
 <!-- ===== PERMISSION / RULES SCREEN ===== -->
-<div id="permission-screen" class="overlay-screen">
-    <div class="permission-card">
-        <div class="perm-icon">🎓</div>
-        <h1>AI Proctor System</h1>
-        <p class="perm-subtitle">Read the exam rules carefully and grant the required permissions before proceeding.</p>
+<div id="permission-screen" class="overlay-screen" style="background: rgba(0, 120, 212, 0.05); backdrop-filter: blur(20px); position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center;">
+    <div class="premium-card animate-in" style="max-width: 650px; padding: 3rem; text-align: center; border: 1px solid rgba(255,255,255,0.4);">
+        <div style="font-size: 3rem; margin-bottom: 1.5rem;">🛡️</div>
+        <h1 style="font-weight: 800; letter-spacing: -1px; margin-bottom: 0.5rem;">System Configuration</h1>
+        <p style="color: var(--text-sec); margin-bottom: 2rem;">Please review the security protocols and grant permissions to begin.</p>
 
-        <div class="rules-box">
-            <h3>📋 Exam Rules &amp; Detection Criteria</h3>
-            <ul class="rules-list">
-                <li><span class="rule-icon">👁️</span><div><strong>Face Detection</strong><span>Your face must remain visible. &gt;2 s absence triggers an alert.</span></div></li>
-                <li><span class="rule-icon">👥</span><div><strong>Multiple Persons</strong><span>Only one person is allowed in the camera frame at all times.</span></div></li>
-                <li><span class="rule-icon">👀</span><div><strong>Gaze Monitoring</strong><span>Looking away for &gt;2 s is flagged as suspicious. Stay focused.</span></div></li>
-                <li><span class="rule-icon">📱</span><div><strong>Phone Detection</strong><span>Mobile phones or devices visible in the frame will be flagged automatically.</span></div></li>
-                <li><span class="rule-icon">🔊</span><div><strong>Audio Monitoring</strong><span>Sustained loud sound or talking for &gt;2 s will be logged.</span></div></li>
-                <li><span class="rule-icon">🖥️</span><div><strong>Window Switching</strong><span>Switching to another application will be detected and logged.</span></div></li>
-                <li><span class="rule-icon">⌨️</span><div><strong>Baseline Keystroke</strong><span>Your typing speed is calibrated for 30 s; significant deviations are flagged.</span></div></li>
-                <li><span class="rule-icon">🚨</span><div><strong>Auto-Stop</strong><span>The exam auto-stops after 10 violations. Evidence screenshots are saved.</span></div></li>
+        <div class="glass-panel" style="text-align: left; padding: 1.5rem; margin-bottom: 2rem; background: rgba(255,255,255,0.5);">
+            <h3 style="margin-top: 0; font-size: 0.9rem; text-transform: uppercase; color: var(--primary-blue); letter-spacing: 1px;">Security Protocols</h3>
+            <ul style="list-style: none; padding: 0; margin: 1rem 0 0; font-size: 0.9rem; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <li>✅ AI Face Verification</li>
+                <li>✅ Multiple Person Check</li>
+                <li>✅ Gaze Tracking</li>
+                <li>✅ Object Detection</li>
+                <li>✅ Audio Monitoring</li>
+                <li>✅ Browser Lockout</li>
             </ul>
         </div>
 
-        <div class="perm-status-box">
-            <div class="perm-item" id="perm-cam"><span class="perm-dot pending"></span><span>Camera</span><span class="perm-label">Pending</span></div>
-            <div class="perm-item" id="perm-mic"><span class="perm-dot pending"></span><span>Microphone</span><span class="perm-label">Pending</span></div>
+        <div style="display:flex; justify-content:center; gap: 4rem; margin-bottom: 2rem;">
+            <div id="perm-cam" style="display:flex; flex-direction:column; align-items:center; gap: 12px;">
+                <div class="perm-dot pulse-indicator" style="background: #ccc; width: 12px; height: 12px;"></div>
+                <span class="perm-label" style="font-size: 0.85rem; font-weight: 700; color: var(--text-sec);">Camera</span>
+            </div>
+            <div id="perm-mic" style="display:flex; flex-direction:column; align-items:center; gap: 12px;">
+                <div class="perm-dot pulse-indicator" style="background: #ccc; width: 12px; height: 12px;"></div>
+                <span class="perm-label" style="font-size: 0.85rem; font-weight: 700; color: var(--text-sec);">Microphone</span>
+            </div>
         </div>
-        <p id="perm-error" class="perm-error" style="display:none;"></p>
-        <div class="perm-actions">
-            <button id="grantPermBtn" class="btn btn-primary btn-large">🔐 Grant Permissions &amp; Continue</button>
-        </div>
+
+        <button id="grantPermBtn" class="btn-premium" style="width: 100%; padding: 16px;">🔐 Initialize Secure Environment</button>
+        <p id="perm-error" style="color: var(--danger); font-size: 0.85rem; margin-top: 1rem; display: none; font-weight: 600;"></p>
     </div>
 </div>
 
 <!-- ===== STUDENT DASHBOARD ===== -->
-<div id="dashboard" class="dashboard-container" style="display:none;">
-    <header class="dashboard-header">
-        <div class="header-content">
-            <div class="logo"><span class="pulse-dot"></span><h1>AI Proctor — Student View</h1></div>
-            <div style="display:flex;gap:1rem;align-items:center;">
-                <button id="notifBtn" class="btn" style="position:relative;background:#f1f5f9;border:1px solid #e2e8f0;padding:0.5rem 0.75rem;border-radius:8px;cursor:pointer;">
-                    🔔 Notifications <span id="notif-count" class="notif-badge" style="display:none;">0</span>
-                </button>
-                <div id="system-status" class="status-badge">System Standby</div>
-                <a href="/logout" class="btn-link">Logout</a>
+<div id="dashboard" class="dashboard-wrapper animate-in" style="display:none;">
+    <header class="navbar-premium" style="background: transparent; border-bottom: none; position: relative; margin-bottom: 2rem; padding: 0;">
+        <div class="brand-header">
+            <div class="brand-logo">SH</div>
+            <span style="font-weight: 800; font-size: 1.25rem; letter-spacing: -0.5px;">ScoreHunt</span>
+        </div>
+        
+        <div style="display:flex; gap:1.5rem; align-items:center;">
+            <div class="status-pill">
+                <div class="pulse-indicator"></div>
+                <span id="system-status">SECURE SESSION</span>
             </div>
+            
+            <a href="/logout" class="btn-premium-outline" style="text-decoration:none; padding: 8px 16px; font-size: 0.9rem;">Logout</a>
         </div>
     </header>
 
-    <div class="main-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem; display: grid;">
-        <!-- Left Column: Video + Stats -->
-        <div>
-            <div class="tab-nav">
-                <button class="tab-btn active" onclick="switchTab('exam', this)">📝 Exam</button>
-                <button class="tab-btn" onclick="switchTab('results', this)">📊 My Results</button>
-                <button class="tab-btn" onclick="switchTab('classmates', this)">👥 Classmates</button>
-                <button class="tab-btn" onclick="switchTab('hackathons', this)">🚀 Hackathons</button>
-                <button class="tab-btn" onclick="switchTab('profile', this)">👤 Profile</button>
-                <button class="tab-btn" onclick="switchTab('chat', this)">💬 Support <span id="chat-badge" style="background:#f43f5e;color:white;border-radius:50%;padding:0 5px;font-size:10px;display:none;">0</span></button>
-            </div>
+    <div class="premium-nav">
+        <button class="nav-item active" onclick="switchTab('exam', this)">
+            <span class="nav-icon">📝</span>
+            <span class="nav-text">Exam</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('results', this)">
+            <span class="nav-icon">📊</span>
+            <span class="nav-text">Results</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('leaderboard', this)">
+            <span class="nav-icon">🏆</span>
+            <span class="nav-text">Leaderboard</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('hackathons', this)">
+            <span class="nav-icon">🚀</span>
+            <span class="nav-text">Hackathons</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('profile', this)">
+            <span class="nav-icon">👤</span>
+            <span class="nav-text">Profile</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('chat', this)">
+            <span class="nav-icon">💬</span>
+            <span class="nav-text">Support</span>
+        </button>
+    </div>
 
+    <div class="main-layout">
+        <!-- Left Column: Main Content -->
+        <div class="content-area">
             <!-- EXAM TAB -->
-            <div id="tab-exam">
-                <div class="card" style="padding: 3rem; text-align: center;">
-                    <h2 style="font-size: 2rem; margin-bottom: 1rem;">Ready to take your exam?</h2>
-                    <p style="color: #64748b; margin-bottom: 2rem; max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.6;">
-                        You are about to enter the secure testing environment. 
-                        Please ensure you are in a quiet room with adequate lighting. 
-                        You will be required to verify your identity using your camera before the timer begins.
-                    </p>
-                    <a href="/verify_id" class="btn btn-primary" style="padding: 1rem 3rem; font-size: 1.1rem; text-decoration: none; display: inline-block;">
-                        Proceed to Exam Verification →
-                    </a>
+            <div id="tab-exam" class="tab-content" style="display:block;">
+                <div class="premium-card animate-in">
+                    <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 1.5rem; letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px;">
+                        <span>📝</span> Available Exams
+                    </h2>
+                    
+                    <div id="available-exams-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+                        <p style="color: var(--text-sec); grid-column: 1/-1; text-align: center; padding: 2rem;">Loading available exams...</p>
+                    </div>
                 </div>
             </div>
 
@@ -269,13 +458,31 @@
                 </div>
             </div>
 
-            <!-- CLASSMATES TAB -->
-            <div id="tab-classmates" style="display:none;">
-                <div class="card" style="padding:1.5rem;">
-                    <h3 style="margin-bottom:1rem;">👥 My Year Mates Results</h3>
-                    <p style="color:#64748b;margin-bottom:1rem;">Results of students from your year (published exams only)</p>
-                    <div id="classmates-list">
-                        <p style="color:#64748b;text-align:center;padding:2rem;">Loading results...</p>
+            <!-- LEADERBOARD TAB -->
+            <div id="tab-leaderboard" style="display:none;">
+                <div class="card premium-card animate-in" style="padding:1.5rem;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+                        <h2 style="margin:0;display:flex;align-items:center;gap:10px;">
+                            <span>🏆</span> Exam Leaderboard
+                        </h2>
+                        <select id="leaderboard-exam-select" onchange="loadLeaderboard(this.value)" class="ms-input" style="padding:0.5rem;border-radius:8px;">
+                            <option value="">Select Exam</option>
+                        </select>
+                    </div>
+                    <div class="leaderboard-container">
+                        <table class="premium-table">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Student Name</th>
+                                    <th>Department</th>
+                                    <th style="text-align:right;">Marks Obtained</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboard-list">
+                                <tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-sec);">Loading leaderboard...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -312,7 +519,7 @@
                     </div>
                     
                     <div id="profile-view" class="card" style="background:#f8fafc;border:none;padding:1.5rem;">
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+                        <div class="profile-grid">
                             <div>
                                 <label style="font-size:0.75rem;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Student ID</label>
                                 <p style="margin:0.25rem 0 0;font-weight:600;" id="view-student-id">-</p>
@@ -342,7 +549,7 @@
                         <hr style="border:none;border-top:1px solid #e2e8f0;margin:1.5rem 0;">
                         
                         <h4 style="margin:0 0 1rem;font-size:1rem;">Parent/Guardian Information *</h4>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+                        <div class="profile-grid">
                             <div>
                                 <label style="font-size:0.75rem;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Parent Name *</label>
                                 <p style="margin:0.25rem 0 0;font-weight:600;" id="view-parent-name">Not Set</p>
@@ -356,7 +563,7 @@
                         <hr style="border:none;border-top:1px solid #e2e8f0;margin:1.5rem 0;">
                         
                         <h4 style="margin:0 0 1rem;font-size:1rem;">Additional Information</h4>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+                        <div class="profile-grid">
                             <div>
                                 <label style="font-size:0.75rem;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">GitHub Profile</label>
                                 <p style="margin:0.25rem 0 0;" id="view-git-profile"><a href="#" target="_blank" id="view-git-link">-</a></p>
@@ -494,13 +701,24 @@ const permError  = document.getElementById('perm-error');
 
 function setPermStatus(id, state) {
     const el = document.getElementById(id);
-    el.querySelector('.perm-dot').className  = `perm-dot ${state}`;
-    el.querySelector('.perm-label').textContent = state === 'granted' ? '✔ Granted' : state === 'denied' ? '✘ Denied' : 'Pending';
+    if (!el) return;
+    const dot = el.querySelector('.perm-dot');
+    const label = el.querySelector('.perm-label');
+    
+    if (dot) {
+        dot.style.background = state === 'granted' ? '#107c10' : state === 'denied' ? '#d83b01' : '#ccc';
+        dot.style.boxShadow = state === 'granted' ? '0 0 10px rgba(16, 124, 16, 0.5)' : 'none';
+        dot.classList.toggle('pulse-indicator', state === 'pending');
+    }
+    if (label) {
+        label.textContent = state === 'granted' ? '✔ Allowed' : state === 'denied' ? '✘ Denied' : (id.includes('cam') ? 'Camera' : 'Microphone');
+        label.style.color = state === 'granted' ? '#107c10' : state === 'denied' ? '#d83b01' : 'var(--text-sec)';
+    }
 }
 
 grantBtn.addEventListener('click', async () => {
     grantBtn.disabled = true;
-    grantBtn.textContent = 'Requesting…';
+    grantBtn.textContent = 'Requesting Access...';
     permError.style.display = 'none';
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -527,13 +745,24 @@ grantBtn.addEventListener('click', async () => {
 });
 
 // ===== TAB SWITCHING =====
-function switchTab(tabName, btn) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    ['exam', 'results', 'classmates', 'hackathons', 'chat'].forEach(t => {
-        document.getElementById('tab-' + t).style.display = t === tabName ? 'block' : 'none';
+function switchTab(tabId, el) {
+    // Update nav items
+    document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+    if(el) el.classList.add('active');
+    
+    // Switch content blocks
+    ['exam', 'results', 'classmates', 'hackathons', 'chat', 'profile'].forEach(t => {
+        const target = document.getElementById('tab-' + t);
+        if(target) {
+            target.style.display = (t === tabId) ? 'block' : 'none';
+        }
     });
-    if (tabName === 'classmates') loadClassmatesResults();
+
+    // Load specific tab data if needed
+    if(tabId === 'results') loadResults();
+    if(tabId === 'classmates') loadClassmatesResults();
+    if(tabId === 'hackathons') loadHackathons();
+    if(tabId === 'profile') loadProfile();
 }
 
 // ===== STUDENT FEATURES INIT =====
@@ -545,6 +774,15 @@ function initStudentFeatures() {
     loadHackathons();
     loadChatHistory();
     loadProfile();
+    
+    // Handle query parameter for tab switching
+    const params = new URLSearchParams(window.location.search);
+    const targetTab = params.get('tab');
+    if (targetTab) {
+        const tabBtn = document.querySelector(`[onclick^="switchTab('${targetTab}'"]`);
+        if (tabBtn) switchTab(targetTab, tabBtn);
+    }
+
     setInterval(loadNotifications, 30000);
     setInterval(loadChatHistory, 5000);
 }
@@ -558,7 +796,12 @@ const audioOsStatus = document.getElementById('audio-os-status');
 const systemStatus  = document.getElementById('system-status');
 const autostopBanner = document.getElementById('autostop-banner');
 
-startBtn.addEventListener('click', () => {
+// Guard: these elements only exist in the old layout; skip listeners if absent
+if (!startBtn || !endBtn || !eventLog) {
+    console.warn('[Student] Legacy exam control elements not found — using new layout.');
+}
+
+if (startBtn) startBtn.addEventListener('click', () => {
     isExamActive = true; wasActive = true;
     startBtn.disabled = true; endBtn.disabled = false;
     autostopBanner.style.display = 'none';
@@ -568,19 +811,21 @@ startBtn.addEventListener('click', () => {
     addLogEntry('Your attendance has been marked.', 'info');
 });
 
-endBtn.addEventListener('click', () => {
+if (endBtn) endBtn.addEventListener('click', () => {
     isExamActive = false;
     startBtn.disabled = false; endBtn.disabled = true;
     fetch('/api/control', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'stop'}) });
     addLogEntry('Exam session ended.', 'info');
 });
 
-document.getElementById('clearLog').addEventListener('click', () => {
+const clearLogBtn = document.getElementById('clearLog');
+if (clearLogBtn) clearLogBtn.addEventListener('click', () => {
     eventLog.innerHTML = '<div class="log-entry info-msg"><span class="log-time">Now</span><span class="log-text">Logs cleared.</span></div>';
     seenEvents.clear();
 });
 
 function addLogEntry(text, type = 'warning') {
+    if (!eventLog) return;  // guard: eventLog element may not exist in this layout
     const e = document.createElement('div');
     e.className = `log-entry ${type}-msg slide-in`;
     e.innerHTML = `<span class="log-time">${new Date().toLocaleTimeString([],{hour12:false})}</span><span class="log-text">${text}</span>`;
@@ -590,28 +835,28 @@ function addLogEntry(text, type = 'warning') {
 
 setInterval(() => {
     fetch('/api/stats').then(r => r.json()).then(data => {
-        warningCount.textContent = data.warnings;
-        warningCount.classList.toggle('pulse-warning', data.warnings > 0);
+        if (warningCount) { warningCount.textContent = data.warnings; warningCount.classList.toggle('pulse-warning', data.warnings > 0); }
 
-        visionStatus.textContent = data.vision_status || 'Standby';
-        visionStatus.className = (data.vision_status||'').includes('⚠') ? 'stat-value text-warning'
-                                : data.vision_status === 'Normal'        ? 'stat-value text-success'
-                                                                         : 'stat-value text-secondary';
+        if (visionStatus) {
+            visionStatus.textContent = data.vision_status || 'Standby';
+            visionStatus.className = (data.vision_status||'').includes('⚠') ? 'stat-value text-warning'
+                                    : data.vision_status === 'Normal'        ? 'stat-value text-success'
+                                                                             : 'stat-value text-secondary';
+        }
 
         const mon = data.audio_status === 'Active' && data.os_status === 'Active';
-        audioOsStatus.textContent = mon ? 'All Systems Active' : 'Monitoring Off';
-        audioOsStatus.className   = mon ? 'stat-value text-success' : 'stat-value text-secondary';
+        if (audioOsStatus) { audioOsStatus.textContent = mon ? 'All Systems Active' : 'Monitoring Off'; audioOsStatus.className = mon ? 'stat-value text-success' : 'stat-value text-secondary'; }
 
         if (wasActive && !data.is_active && isExamActive) {
             isExamActive = false;
-            startBtn.disabled = false; endBtn.disabled = true;
-            autostopBanner.style.display = 'flex';
+            if (startBtn) startBtn.disabled = false;
+            if (endBtn) endBtn.disabled = true;
+            if (autostopBanner) autostopBanner.style.display = 'flex';
             addLogEntry('🚨 Exam auto-stopped by system.', 'warning');
         }
         isExamActive = data.is_active;
 
-        systemStatus.textContent = isExamActive ? 'Proctoring Active' : 'System Standby';
-        systemStatus.className   = isExamActive ? 'status-badge active' : 'status-badge';
+        if (systemStatus) { systemStatus.textContent = isExamActive ? 'Proctoring Active' : 'System Standby'; systemStatus.className = isExamActive ? 'status-badge active' : 'status-badge'; }
 
         (data.events||[]).forEach(ev => {
             const id = `${ev.timestamp}-${ev.msg}`;
@@ -671,26 +916,35 @@ function reportBrowserEvent(msg) {
 
 function showTabViolationOverlay(msg) {
     const overlay = document.createElement('div');
+    overlay.id = 'violation-overlay';
     overlay.style.cssText = `
         position:fixed;inset:0;z-index:99999;
         background:rgba(8,10,18,0.97);
         display:flex;flex-direction:column;
         align-items:center;justify-content:center;gap:1.5rem;
         font-family:Inter,sans-serif;
+        padding: 2rem;
+        text-align: center;
     `;
     overlay.innerHTML = `
         <div style="font-size:4rem;">🚫</div>
-        <h2 style="color:#f43f5e;font-size:1.75rem;font-weight:800;text-align:center;">Exam Terminated</h2>
-        <p style="color:#94a3b8;font-size:1rem;text-align:center;max-width:480px;line-height:1.6;">
-            ${msg}<br><strong style="color:#f8fafc;">Your exam has been stopped and the incident has been reported to the admin.</strong>
+        <h2 style="color:#f43f5e;font-size:1.75rem;font-weight:800;">Exam Session Terminated</h2>
+        <p style="color:#94a3b8;font-size:1rem;max-width:480px;line-height:1.6;">
+            ${msg}<br><strong style="color:#f8fafc;">A security violation was logged. Your session has been stopped, but you can still access your dashboard.</strong>
         </p>
-        <div style="background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2);
-                    border-radius:12px;padding:0.85rem 1.5rem;color:#f43f5e;font-size:0.875rem;font-weight:600;">
-            🔴 Tab/Window Switch Detected — Violation Logged
-        </div>`;
+        <button class="btn-premium" onclick="exitToDashboard()" style="margin-top:1rem;">Return to Dashboard</button>
+    `;
     document.body.appendChild(overlay);
-    startBtn.disabled = true;
-    autostopBanner.style.display = 'flex';
+    isExamActive = false;
+}
+
+function exitToDashboard() {
+    const overlay = document.getElementById('violation-overlay');
+    if (overlay) overlay.remove();
+    
+    // Switch to results tab to show exam status
+    switchTab('results', document.querySelector('[onclick="switchTab(\'results\', this)"]'));
+    loadResults();
 }
 
 document.addEventListener('visibilitychange', () => {
@@ -762,6 +1016,45 @@ async function markNotifRead(id) {
 document.getElementById('notifBtn').addEventListener('click', () => {
     document.getElementById('notif-modal').style.display = 'flex';
 });
+
+// ===== AVAILABLE EXAMS =====
+async function loadAvailableExams() {
+    try {
+        const resp = await fetch('/api/exams');
+        const exams = await resp.json();
+        const list = document.getElementById('available-exams-list');
+        
+        if (!exams.length) {
+            list.innerHTML = `
+                <div style="grid-column: 1/-1; text-align: center; padding: 3rem; background: #f8fafc; border-radius: 16px; border: 2px dashed #e2e8f0;">
+                    <div style="font-size: 2.5rem; margin-bottom: 1rem;">📭</div>
+                    <h3 style="color: #64748b; margin-bottom: 0.5rem;">No Active Exams</h3>
+                    <p style="color: #94a3b8; font-size: 0.9rem;">Check back later for scheduled assessments.</p>
+                </div>
+            `;
+            return;
+        }
+
+        list.innerHTML = exams.map(ex => `
+            <div class="premium-card animate-in-up" style="padding: 1.5rem; border: 1px solid #e2e8f0; transition: transform 0.2s, box-shadow 0.2s; cursor: default;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                    <div style="background: rgba(0, 120, 212, 0.1); color: var(--accent); padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px;">
+                        ${ex.duration} MINS
+                    </div>
+                    <div style="font-size: 1.25rem;">📄</div>
+                </div>
+                <h3 style="margin: 0 0 0.5rem 0; font-size: 1.1rem; font-weight: 800;">${ex.exam_name}</h3>
+                <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 1.5rem;">Total Marks: ${ex.total_marks}</p>
+                <a href="/check?exam=${encodeURIComponent(ex.exam_name)}" class="btn-premium" style="width: 100%; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; font-size: 0.85rem;">
+                    <span>Start Exam</span>
+                    <span>→</span>
+                </a>
+            </div>
+        `).join('');
+    } catch(e) {
+        console.error("Error loading exams:", e);
+    }
+}
 
 // ===== RESULTS =====
 async function loadResults() {
@@ -1122,56 +1415,130 @@ async function loadClassmatesResults() {
     }
 }
 
-async function loadStudentQueries() {
-    const list = document.getElementById('chat-messages');
-    list.innerHTML = '<div style="text-align:center;padding:1rem;">Loading...</div>';
-    
-    try {
-        const resp = await fetch('/api/student/queries');
-        const queries = await resp.json();
-        
-        if (!queries.length) {
-            list.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--ms-grey-secondary);">No queries yet. Start a conversation below.</div>';
-            return;
-        }
-        
-        list.innerHTML = queries.map(q => `
-            <div style="margin-bottom:1rem;display:flex;flex-direction:column;align-items:${q.sender === 'student' ? 'flex-end' : 'flex-start'};">
-                <div style="max-width:80%;padding:0.75rem 1rem;border-radius:12px;background:${q.sender === 'student' ? 'var(--ms-blue)' : 'var(--ms-grey-light)'};color:${q.sender === 'student' ? 'white' : 'inherit'};">
-                    <div style="font-size:0.9rem;">${q.message}</div>
-                    <div style="font-size:0.7rem;margin-top:0.25rem;opacity:0.8;text-align:right;">${new Date(q.created_at * 1000).toLocaleTimeString()}</div>
-                </div>
-                ${q.response ? `
-                    <div style="margin-top:0.5rem;max-width:80%;padding:0.75rem 1rem;border-radius:12px;background:var(--ms-success);color:white;align-self:flex-start;">
-                        <div style="font-size:0.75rem;font-weight:600;margin-bottom:0.15rem;">Admin Support</div>
-                        <div style="font-size:0.9rem;">${q.response}</div>
-                        <div style="font-size:0.7rem;margin-top:0.25rem;opacity:0.8;text-align:right;">${new Date(q.responded_at * 1000).toLocaleTimeString()}</div>
-                    </div>
-                ` : ''}
-            </div>
-        `).join('');
-        list.scrollTop = list.scrollHeight;
-    } catch(e) {
-        list.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--ms-danger);">Failed to load chat history.</div>';
-    }
-}
+        // ── Navigation ────────────────────────────────────────────────────────
+        function switchTab(tabId, el) {
+            document.querySelectorAll('.tab-content, [id^="tab-"]').forEach(t => t.style.display = 'none');
+            const target = document.getElementById('tab-' + tabId);
+            if (target) target.style.display = 'block';
 
-async function sendStudentQuery() {
-    const input = document.getElementById('chat-input');
-    const message = input.value.trim();
-    if (!message) return;
-    
-    try {
-        await fetch('/api/student/query', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({message})
+            document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+            if (el) el.classList.add('active');
+
+            if (tabId === 'profile') loadProfile();
+            if (tabId === 'results') loadResults();
+            if (tabId === 'leaderboard') loadLeaderboard();
+        }
+
+        // ── Profile Logic ──────────────────────────────────────────────────────
+        async function loadProfile() {
+            try {
+                const res = await fetch('/api/student/profile');
+                const profile = await res.json();
+                
+                document.getElementById('view-username').textContent = profile.username || '-';
+                document.getElementById('view-full-name').textContent = profile.full_name || 'Not Set';
+                document.getElementById('view-student-id').textContent = profile.student_id || '-';
+                document.getElementById('view-phone').textContent = profile.phone || '-';
+                document.getElementById('view-year').textContent = profile.year || '-';
+                document.getElementById('view-department').textContent = profile.department || '-';
+                document.getElementById('view-parent-name').textContent = profile.parent_name || 'Not Set';
+                document.getElementById('view-parent-phone').textContent = profile.parent_phone || 'Not Set';
+                document.getElementById('view-git-profile').textContent = profile.git_profile || '-';
+
+                document.getElementById('edit-username').value = profile.username || '';
+                document.getElementById('edit-full-name').value = profile.full_name || '';
+                document.getElementById('edit-student-id').value = profile.student_id || '';
+                document.getElementById('edit-phone').value = profile.phone || '';
+                document.getElementById('edit-year').value = profile.year || '1st Year';
+                document.getElementById('edit-department').value = profile.department || 'Computer Science';
+            } catch (err) { console.error(err); }
+        }
+
+        async function saveProfile(event) {
+            event.preventDefault();
+            const data = {
+                full_name: document.getElementById('edit-full-name').value,
+                phone: document.getElementById('edit-phone').value,
+                year: document.getElementById('edit-year').value,
+                department: document.getElementById('edit-department').value
+            };
+            try {
+                await fetch('/api/student/profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                alert("Profile updated!");
+                toggleProfileEdit();
+                loadProfile();
+            } catch (err) { alert("Error saving profile"); }
+        }
+
+        function toggleProfileEdit() {
+            const v = document.getElementById('profile-view');
+            const e = document.getElementById('profile-edit');
+            if (v.style.display === 'none') { v.style.display = 'block'; e.style.display = 'none'; }
+            else { v.style.display = 'none'; e.style.display = 'block'; }
+        }
+
+        // ── Results & Leaderboard ──────────────────────────────────────────────
+        async function loadResults() {
+            const list = document.getElementById('results-list');
+            list.innerHTML = '<p style="text-align:center;padding:2rem;">Loading...</p>';
+            try {
+                const res = await fetch('/api/student/results');
+                const data = await res.json();
+                if (!data.length) { list.innerHTML = '<p style="text-align:center;padding:2rem;">No results found.</p>'; return; }
+                list.innerHTML = `<table class="ms-table"><thead><tr><th>Exam</th><th>Marks</th><th>Verdict</th></tr></thead><tbody>${data.map(r => `<tr><td>${r.exam_name}</td><td>${r.obtained_marks}/${r.total_marks}</td><td>${r.obtained_marks >= r.total_marks*0.4 ? 'PASS' : 'FAIL'}</td></tr>`).join('')}</tbody></table>`;
+            } catch (err) { list.innerHTML = '<p style="color:red;">Error loading results.</p>'; }
+        }
+
+        async function loadLeaderboard(examName = "") {
+            const list = document.getElementById('leaderboard-list');
+            try {
+                const res = await fetch('/api/leaderboard' + (examName ? `?exam=${encodeURIComponent(examName)}` : ''));
+                const players = await res.json();
+                if (!players.length) { list.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:2rem;">No data.</td></tr>'; return; }
+                list.innerHTML = players.map((p, i) => `<tr><td>${i+1}</td><td>${p.student}</td><td>${p.department || '-'}</td><td style="text-align:right;">${p.obtained_marks}</td></tr>`).join('');
+            } catch (err) { list.innerHTML = '<tr><td colspan="4" style="color:red;">Error.</td></tr>'; }
+        }
+
+        async function loadNotifications() {
+            // Placeholder logic if needed
+        }
+
+        async function loadAvailableExams() {
+            try {
+                const res = await fetch('/api/exams');
+                const exams = await res.json();
+                const list = document.getElementById('available-exams-list');
+                const select = document.getElementById('leaderboard-exam-select');
+                
+                if (exams.length) {
+                    list.innerHTML = exams.map(e => `
+                        <div class="premium-card" style="padding:1rem;border:1px solid #e2e8f0;">
+                            <h4>${e.exam_name}</h4>
+                            <p style="font-size:0.8rem;color:#64748b;">Duration: ${e.duration} mins</p>
+                            <button class="btn btn-primary btn-sm" onclick="location.href='/check?exam=${encodeURIComponent(e.exam_name)}'">Start Exam</button>
+                        </div>
+                    `).join('');
+                    
+                    if (select) {
+                        select.innerHTML = '<option value="">Select Exam</option>' + 
+                            exams.map(e => `<option value="${e.exam_name}">${e.exam_name}</option>`).join('');
+                    }
+                }
+            } catch (err) {}
+        }
+
+        async function loadHackathons() {
+            // Placeholder
+        }
+
+        window.addEventListener('load', () => {
+            loadProfile();
+            loadAvailableExams();
         });
-        input.value = '';
-        loadStudentQueries();
-    } catch(e) {
-        alert('Failed to send message');
-    }
-}
-</script></body>
+    </script>
+</body>
 </html>

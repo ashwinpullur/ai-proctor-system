@@ -39,6 +39,17 @@
         .id-status.ok  { color: var(--ms-success); }
         .id-status.err { color: var(--ms-danger); }
         .id-status.busy { color: #f59e0b; }
+
+        @media (max-width: 640px) {
+            body { padding: 1rem; }
+            .verify-card { padding: 1.5rem; }
+            .cam-preview { aspect-ratio: 1/1; }
+            h1 { font-size: 1.5rem; }
+            .id-overlay { font-size: 0.75rem; width: 85%; }
+            .ms-badge { font-size: 0.7rem; }
+            div[style*="display: flex"] { flex-direction: column; text-align: center; }
+            #verify-btn { width: 100%; margin-top: 1rem; }
+        }
     </style>
 </head>
 <body>

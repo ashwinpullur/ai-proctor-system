@@ -1,154 +1,172 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ScoreHunt | Student Registration</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>ScoreHunt | Create Account</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='fluent.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { background-color: var(--ms-off-white); display: flex; flex-direction: column; min-height: 100vh; }
-        
-        /* Main Layout */
-        .login-split { display: flex; flex: 1; min-height: calc(100vh - 65px); width: 100%; }
-        
-        /* Left Column */
-        .login-form-container { flex: 1; display: flex; align-items: center; justify-content: center; padding: 1rem; }
-        .login-card { width: 100%; max-width: 440px; padding: 1.5rem; background: var(--ms-white); border: 1px solid var(--ms-grey-border); border-radius: var(--ms-radius); box-shadow: 0 8px 24px rgba(0,0,0,0.06); display: flex; flex-direction: column; gap: 1rem; }
-
-        /* Right Column */
-        .login-graphic-container { flex: 1; display: none; background: var(--ms-blue); position: relative; overflow: hidden; align-items: center; justify-content: center; }
-        @media (min-width: 900px) { 
-            .login-graphic-container { display: flex; }
-            .login-form-container { padding: 2rem; }
-            .login-card { padding: 2rem; }
+        body {
+            background: linear-gradient(135deg, #0078d4 0%, #002050 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
         }
-        .login-graphic { width: 100%; height: 100%; object-fit: cover; opacity: 0.95; }
-        .graphic-overlay-text { position: absolute; bottom: 3rem; left: 3rem; right: 3rem; color: white; text-shadow: 0 2px 10px rgba(0,0,0,0.3); text-align: left; }
-
-        /* Form */
-        .ms-logo-small { margin-bottom: 0.5rem; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 1.1rem; }
-        h2 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #1b1b1b; }
         
-        .form-group { display: flex; flex-direction: column; gap: 0.5rem; text-align: left; }
-        .form-label { font-size: 0.85rem; font-weight: 600; color: var(--ms-grey-text); }
-        .input-icon-wrapper { position: relative; display: flex; align-items: center; }
-        .input-icon-wrapper input, .input-icon-wrapper select { padding-left: 2.5rem; }
-        .input-icon { position: absolute; left: 0.75rem; color: var(--ms-grey-secondary); font-size: 1.1rem; }
+        .login-container {
+            display: flex;
+            width: 100%;
+            max-width: 1100px;
+            height: 700px;
+            margin: 20px;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
 
-        .alert { padding: 1rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; }
-        .alert-error { background: #fee2e2; color: #b91c1c; border-left: 4px solid #b91c1c; }
+        .login-side-form {
+            flex: 1.2;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 3rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+            overflow-y: auto;
+        }
+
+        .login-side-graphic {
+            flex: 1;
+            background: linear-gradient(45deg, rgba(0, 120, 212, 0.8), rgba(16, 110, 190, 0.9)), 
+                        url('https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=1000') center/cover;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 3rem;
+            color: white;
+        }
+
+        @media (max-width: 850px) {
+            .login-side-graphic { display: none; }
+            .login-container { max-width: 500px; height: auto; }
+        }
+
+        .brand-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; }
+        .brand-logo { width: 32px; height: 32px; background: var(--primary-blue); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; }
+
+        h1 { font-size: 1.8rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -1px; }
+        p.subtitle { color: var(--text-sec); margin-bottom: 2rem; font-size: 0.95rem; }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+        @media (max-width: 500px) { .form-grid { grid-template-columns: 1fr; } }
+
+        .form-group { margin-bottom: 1.25rem; }
+        .form-label { display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--text-main); }
         
-        /* Mobile Responsive */
-        @media (max-width: 480px) {
-            .login-card { padding: 1rem; }
-            h2 { font-size: 1.25rem; }
-            .form-label { font-size: 0.8rem; }
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 1rem;
+            box-shadow: 0 8px 20px rgba(0, 120, 212, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .submit-btn:hover { background: var(--primary-blue-hover); transform: translateY(-2px); }
+
+        .footer-link { text-align: center; margin-top: 2rem; font-size: 0.85rem; color: var(--text-sec); }
+        .footer-link a { color: var(--primary-blue); font-weight: 700; text-decoration: none; }
+
+        .alert {
+            padding: 1rem; border-radius: 10px; background: #fee2e2; color: #b91c1c; font-size: 0.85rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;
         }
     </style>
 </head>
-
 <body>
-    <header class="ms-header">
-        <div class="container navbar">
-            <a href="/" class="ms-logo-box">
-                <div class="ms-symbol" style="background: var(--ms-blue); width: 20px; height: 20px; border-radius: 4px; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800;">SH</div>
-                <span>ScoreHunt AI Proctorer</span>
-            </a>
-            <div class="nav-links">
-                <a href="/">Home</a>
-            </div>
-        </div>
-    </header>
-
-    <main class="login-split">
-        <div class="login-form-container">
-            <div class="login-card">
-        <div class="ms-logo-small">
-            <div class="ms-symbol-tiny" style="background: var(--ms-blue); width: 16px; height: 16px; border-radius: 2px; color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800;">SH</div>
-            <span>ScoreHunt</span>
-        </div>
-        <h2>Create Account</h2>
-        <p style="margin-bottom: 1.5rem; font-size: 0.95rem;">Join ScoreHunt AI Proctorer</p>
-
-        {% if error %}
-        <div class="error-msg">{{ error }}</div>
-        {% endif %}
-
-        <form method="POST">
-            <div class="form-group">
-                <label for="student_id" class="form-label">Student ID</label>
-                <div class="input-icon-wrapper">
-                    <i class="ms-Icon ms-Icon--Contact input-icon"></i>
-                    <input type="text" name="student_id" id="student_id" class="ms-input" placeholder="Enter your Student ID (e.g., STU001)" required autofocus>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="username" class="form-label">Desired Username</label>
-                <div class="input-icon-wrapper">
-                    <i class="ms-Icon ms-Icon--Person input-icon"></i>
-                    <input type="text" name="username" id="username" class="ms-input" placeholder="Create your username" required>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="year" class="form-label">Current Year</label>
-                <div class="input-icon-wrapper">
-                    <i class="ms-Icon ms-Icon--Calendar input-icon"></i>
-                    <select name="year" id="year" class="ms-input" style="padding-left: 2.5rem;" required>
-                        <option value="1st Year">1st Year</option>
-                        <option value="2nd Year">2nd Year</option>
-                        <option value="3rd Year">3rd Year</option>
-                        <option value="4th Year">4th Year</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="department" class="form-label">Department</label>
-                <div class="input-icon-wrapper">
-                    <i class="ms-Icon ms-Icon--Building input-icon"></i>
-                    <select name="department" id="department" class="ms-input" style="padding-left: 2.5rem;" required>
-                        <option value="Computer Science">Computer Science</option>
-                        <option value="Electronics">Electronics</option>
-                        <option value="Mechanical">Mechanical</option>
-                        <option value="Civil">Civil</option>
-                        <option value="Electrical">Electrical</option>
-                        <option value="Information Technology">Information Technology</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </div>
+    <div class="login-container animate-in">
+        <div class="login-side-form">
+            <div class="brand-header">
+                <div class="brand-logo">SH</div>
+                <span style="font-weight: 700; letter-spacing: -0.5px;">ScoreHunt AI</span>
             </div>
             
-            <div class="form-group">
-                <label for="password" class="form-label">Create Password</label>
-                <div class="input-icon-wrapper">
-                    <i class="ms-Icon ms-Icon--Lock input-icon"></i>
-                    <input type="password" name="password" id="password" class="ms-input" placeholder="Secure password" required>
-                </div>
-            </div>
-            
-            <div style="margin-top: 1.5rem;">
-                <button type="submit" class="ms-btn ms-btn-primary" style="width: 100%;" onclick="this.innerHTML='Creating Account...';">Create Student Account</button>
-            </div>
-        </form>
+            <h1>Create Student Account</h1>
+            <p class="subtitle">Join the secure academic community</p>
 
-        <div style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem;">
-            Already have an account? <a href="/login" style="color: var(--ms-blue); font-weight: 600;">Log in securely</a>
-        </div>
+            {% if error %}
+            <div class="alert">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span>{{ error }}</span>
             </div>
+            {% endif %}
+
+            <form method="POST">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Student ID</label>
+                        <input type="text" name="student_id" class="premium-input" placeholder="e.g. STU123" required autofocus>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Username</label>
+                        <input type="text" name="username" class="premium-input" placeholder="e.g. alex_stone" required>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Current Year</label>
+                        <select name="year" class="premium-input" required>
+                            <option value="1st Year">1st Year</option>
+                            <option value="2nd Year">2nd Year</option>
+                            <option value="3rd Year">3rd Year</option>
+                            <option value="4th Year">4th Year</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Department</label>
+                        <select name="department" class="premium-input" required>
+                            <option value="Computer Science">Computer Science</option>
+                            <option value="Electronics">Electronics</option>
+                            <option value="Mechanical">Mechanical</option>
+                            <option value="Civil">Civil</option>
+                            <option value="Electrical">Electrical</option>
+                            <option value="Information Technology">Information Technology</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" name="password" class="premium-input" placeholder="••••••••" required>
+                </div>
+                
+                <button type="submit" class="submit-btn">Create Profile & Register</button>
+                
+                <div class="footer-link">
+                    Already have an account? <a href="/login">Sign in</a>
+                </div>
+            </form>
         </div>
-        
-        <div class="login-graphic-container">
-            <img class="login-graphic" src="/static/scorehunt_login_illustration.png" alt="Secure Artificial Intelligence Security Shield">
-            <div class="graphic-overlay-text">
-                <h2 style="font-size: 2rem; margin-bottom: 0.5rem; font-weight: 700;">Start Your Journey.</h2>
-                <p style="font-size: 1.1rem; opacity: 0.9; max-width: 80%;">Create your student profile and take your assessments in a secure, AI-powered environment.</p>
+
+        <div class="login-side-graphic">
+            <div style="font-size: 2.2rem; font-weight: 800; line-height: 1.1; margin-bottom: 1rem;">
+                Your Secure Academic Identity.
             </div>
+            <p style="opacity: 0.9; line-height: 1.6; max-width: 90%;">
+                Create a profile to access your assessments, track your academic performance, and engage with a secure testing community.
+            </p>
         </div>
-    </main>
+    </div>
 </body>
-
 </html>

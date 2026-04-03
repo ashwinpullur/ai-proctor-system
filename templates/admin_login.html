@@ -3,65 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign in to Admin Center</title>
+    <title>Admin Login | ScoreHunt</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='fluent.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         body {
-            background-color: var(--ms-off-white);
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
+            margin: 0;
+            font-family: 'Inter', sans-serif;
         }
-        .login-card {
+        
+        .admin-container {
             width: 100%;
-            max-width: 440px;
-            padding: 2.75rem;
-            background: var(--ms-white);
-            border: 1px solid var(--ms-grey-border);
-            box-shadow: 0 2px 4px rgba(0,0,0,.14);
+            max-width: 450px;
+            padding: 20px;
         }
-        .ms-logo-small {
-            margin-bottom: 1.25rem;
+
+        .premium-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            color: white;
+        }
+
+        .brand-logo {
+            width: 48px;
+            height: 48px;
+            background: var(--primary-blue);
+            border-radius: 12px;
             display: flex;
             align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.5rem;
+            margin: 0 auto 2rem;
+            box-shadow: 0 0 20px rgba(0, 120, 212, 0.4);
+        }
+
+        h1 { font-size: 1.75rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -1px; }
+        p.subtitle { color: #94a3b8; margin-bottom: 2.5rem; font-size: 0.95rem; }
+
+        .form-group { margin-bottom: 1.5rem; text-align: left; }
+        .form-label { display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 0.5rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .admin-input {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .admin-input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 4px rgba(0, 120, 212, 0.2);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .submit-btn:hover { background: #1d4ed8; transform: translateY(-2px); box-shadow: 0 10px 20px rgba(29, 78, 216, 0.3); }
+
+        .error-msg {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             gap: 8px;
-            font-weight: 600;
-            font-size: 1.1rem;
         }
-        .ms-symbol-tiny {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1px;
-            width: 16px;
-            height: 16px;
-        }
-        .ms-symbol-tiny div { width: 7px; height: 7px; }
-        h2 { font-size: 1.5rem; margin-bottom: 1rem; color: #1b1b1b; }
-        .error-msg { color: var(--ms-danger); font-size: 0.9rem; margin-bottom: 1rem; }
+
+        .footer-link { margin-top: 2rem; font-size: 0.85rem; color: #64748b; }
+        .footer-link a { color: var(--primary-blue); text-decoration: none; font-weight: 600; }
     </style>
 </head>
 <body>
-    <div class="login-card">
-        <div class="ms-logo-small">
-            <div class="ms-symbol-tiny" style="background: var(--ms-blue); width: 16px; height: 16px; border-radius: 2px; color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800;">SH</div>
-            <span>ScoreHunt Admin</span>
-        </div>
-        <h2>Admin Sign in</h2>
-        <p style="margin-bottom: 1.5rem; font-size: 0.95rem;">Please enter your administrative credentials</p>
-        
-        {% if error %}
-        <div class="error-msg">{{ error }}</div>
-        {% endif %}
+    <div class="admin-container animate-in">
+        <div class="premium-card">
+            <div class="brand-logo">SH</div>
+            <h1>Admin Gateway</h1>
+            <p class="subtitle">Secure infrastructure access only</p>
 
-        <form method="POST">
-            <input type="text" name="username" class="ms-input" placeholder="Admin Username" required autofocus>
-            <input type="password" name="password" class="ms-input" placeholder="Password" required>
-            
-            <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
-                <button type="submit" class="ms-btn ms-btn-primary">Sign in</button>
+            {% if error %}
+            <div class="error-msg">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span>{{ error }}</span>
             </div>
-        </form>
+            {% endif %}
+
+            <form method="POST">
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" name="username" class="admin-input" placeholder="Admin username" required autofocus>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Security Key</label>
+                    <input type="password" name="password" class="admin-input" placeholder="••••••••" required>
+                </div>
+                
+                <button type="submit" class="submit-btn">Authorize Access</button>
+            </form>
+
+            <div class="footer-link">
+                Need help? Contact system engineering.
+            </div>
+        </div>
     </div>
 </body>
 </html>
+

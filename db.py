@@ -166,10 +166,9 @@ def init_db():
             CREATE TABLE IF NOT EXISTS exam_keys (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
                 exam_name       TEXT NOT NULL,
-                answer_key      TEXT,
-                released        INTEGER DEFAULT 0,
-                released_at     INTEGER,
-                released_by     TEXT
+                key_value       TEXT UNIQUE NOT NULL,
+                is_used         INTEGER DEFAULT 0,
+                created_at      INTEGER DEFAULT (strftime('%s','now'))
             );
 
             CREATE TABLE IF NOT EXISTS results (
@@ -199,6 +198,30 @@ def init_db():
             );
         """)
     print("[DB] Database initialized ->", DB_PATH)
+    _migrate_db()
+
+
+def _migrate_db():
+    """Safely add columns/indexes that were introduced after initial deployment.
+    Uses try/except so already-applied migrations are silently skipped."""
+    migrations = [
+        # hackathons: active column was added later
+        "ALTER TABLE hackathons ADD COLUMN active INTEGER DEFAULT 1",
+        # student_profiles: extended fields added later
+        "ALTER TABLE student_profiles ADD COLUMN full_name TEXT",
+        "ALTER TABLE student_profiles ADD COLUMN phone TEXT",
+        "ALTER TABLE student_profiles ADD COLUMN parent_name TEXT",
+        "ALTER TABLE student_profiles ADD COLUMN parent_phone TEXT",
+        "ALTER TABLE student_profiles ADD COLUMN git_profile TEXT",
+        "ALTER TABLE student_profiles ADD COLUMN resume_path TEXT",
+    ]
+    with get_db() as conn:
+        for sql in migrations:
+            try:
+                conn.execute(sql)
+            except Exception:
+                pass  # Column already exists — safe to ignore
+    print("[DB] Migration check complete.")
 
 
 # ── Questions CRUD ─────────────────────────────────────────────────────────────
@@ -211,17 +234,31 @@ def add_question(
     correct_answer=None,
     code_prompt=None,
     placeholder=None,
+    exam_name=None,
 ):
     """Insert a new question. Returns the new row id."""
     opts_json = json.dumps(options) if options else None
     with get_db() as conn:
         cur = conn.execute(
             """INSERT INTO questions
-               (type, question, options, correct_answer, code_prompt, placeholder)
-               VALUES (?,?,?,?,?,?)""",
-            (q_type, question, opts_json, correct_answer, code_prompt, placeholder),
+               (type, question, options, correct_answer, code_prompt, placeholder, exam_name)
+               VALUES (?,?,?,?,?,?,?)""",
+            (q_type, question, opts_json, correct_answer, code_prompt, placeholder, exam_name),
         )
         return cur.lastrowid
+
+
+def get_questions_by_exam(exam_name):
+    """Return questions belonging to a specific exam."""
+    with get_db() as conn:
+        rows = conn.execute("SELECT * FROM questions WHERE exam_name=? ORDER BY id", (exam_name,)).fetchall()
+    result = []
+    for r in rows:
+        d = dict(r)
+        if d["options"]:
+            d["options"] = json.loads(d["options"])
+        result.append(d)
+    return result
 
 
 def list_questions():
@@ -278,6 +315,55 @@ def save_exam_settings(
                 is_active,
             ),
         )
+
+
+def list_exams():
+    """Return all defined exams."""
+    with get_db() as conn:
+        rows = conn.execute("SELECT * FROM exam_settings ORDER BY id DESC").fetchall()
+        return [dict(r) for r in rows]
+
+
+# ── Evidence & Events ─────────────────────────────────────────────────────────
+
+
+def add_session_evidence(session_id, filename, msg, timestamp):
+    """Persist an evidence record to the database."""
+    with get_db() as conn:
+        conn.execute(
+            """INSERT INTO session_evidence (session_id, filename, msg, timestamp)
+               VALUES (?,?,?,?)""",
+            (session_id, filename, msg, int(timestamp)),
+        )
+
+
+def get_session_evidence(session_id):
+    """Retrieve all evidence for a specific session."""
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM session_evidence WHERE session_id=? ORDER BY timestamp ASC",
+            (session_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def add_session_event(session_id, msg, timestamp):
+    """Persist a live event to the database."""
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO session_events (session_id, msg, timestamp) VALUES (?,?,?)",
+            (session_id, msg, int(timestamp)),
+        )
+
+
+def get_session_events(session_id):
+    """Retrieve event history for a session."""
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM session_events WHERE session_id=? ORDER BY timestamp ASC",
+            (session_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
 
 
 def list_exam_settings():
@@ -915,3 +1001,52 @@ def get_active_exam_students():
                ORDER BY started_at DESC"""
         ).fetchall()
         return [dict(r) for r in rows]
+# ── Bulk Generating Exam Keys ──────────────────────────────────────────────────
+import secrets
+import string
+
+def generate_bulk_keys(exam_name, count=10):
+    """
+    Generate multiple unique 8-character exam keys in a single transaction.
+    This prevents the application from getting stuck during large batch creation.
+    """
+    new_keys = []
+    with get_db() as conn:
+        for _ in range(count):
+            # Generate a 8-char random alphanumeric key
+            key = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(8))
+            try:
+                conn.execute(
+                    "INSERT INTO exam_keys (exam_name, key_value) VALUES (?, ?)",
+                    (exam_name, key)
+                )
+                new_keys.append(key)
+            except sqlite3.IntegrityError:
+                # Key collision, skip and let the loop continue
+                continue
+    return new_keys
+
+def list_exam_keys(exam_name):
+    """List all keys (used and unused) for a specific exam."""
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM exam_keys WHERE exam_name=? ORDER BY created_at DESC", 
+            (exam_name,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+def list_exams():
+    """List all exam settings."""
+    with get_db() as conn:
+        rows = conn.execute("SELECT * FROM exam_settings ORDER BY created_at DESC").fetchall()
+        return [dict(r) for r in rows]
+
+def create_exam(exam_name, duration=60, total_marks=100):
+    """Create a new exam setting."""
+    with get_db() as conn:
+        conn.execute(
+            """INSERT INTO exam_settings (exam_name, duration, total_marks, is_active) 
+               VALUES (?, ?, ?, 1)""",
+            (exam_name, duration, total_marks)
+        )
+    return True
